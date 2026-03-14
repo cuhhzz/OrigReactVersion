@@ -1,0 +1,8 @@
+.app-container {
+  min-height: 100vh;
+}
+
+/* fixed header height compensation */
+main {
+  padding-top: 100px;
+}
