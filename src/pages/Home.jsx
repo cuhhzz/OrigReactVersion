@@ -1,220 +1,107 @@
-import React from 'react'
-import { userAuth } from '../auth/AuthContext.jsx'
-import { useNavigate } from 'react-router-dom';
-import SiteHeader from '../components/SiteHeader.jsx'
-import SiteFooter from '../components/SiteFooter.jsx'
-import DashboardSidebar from '../components/DashboardSidebar.jsx'
-import '../styles/Dashboard.css'
+import { useRef } from 'react';
+import { motion, useScroll, useTransform } from 'motion/react';
+import { Link } from 'react-router';
+import { PRODUCTS } from '../data/products';
+import { ArrowRight } from 'lucide-react';
 
+export const Home = () => {
+  const containerRef = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ['start start', 'end end'],
+  });
 
-const Home = () => {
-  const { session, signOut } = userAuth();
-  const navigate =  useNavigate();
-  console.log(session);
+  // Parallax effect for the hero text
+  const heroY = useTransform(scrollYProgress, [0, 0.5], [0, 150]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
 
-  const handleSignOut = async (e) => {
-    e.preventDefault();
-    try {
-      await signOut();
-      navigate("/");
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
-  };
-
-  const masterRecords = [
-    { id: '10001', name: 'Team Name', date: '02/09/2023', status: 'Status', actions: '✎ 🗑' },
-    { id: '10002', name: 'Team Name', date: '02/09/2023', status: 'Status', actions: '✎ 🗑' },
-    { id: '10003', name: 'Amorn John', date: '09/18/2022', status: 'New', actions: '✎ 🗑' },
-    { id: '10004', name: 'Boren Name', date: '12-08-2023', status: 'Status', actions: '✎ 🗑' }
-  ]
-
-  const recentActivityItems = [
-    { icon: '👤', text: 'Recent decoded', time: '2 hours ago' },
-    { icon: '📊', text: 'Millned calomorth activity', time: '1 hour ago' },
-    { icon: '📋', text: 'Recent print inrecet', time: '1 hour ago' }
-  ]
-
-  const teamMembers = [
-    { icon: '👤', name: 'Alerson Anner', role: 'Team Member' },
-    { icon: '👤', name: 'Jiann Danner', role: 'Team Member' },
-    { icon: '👤', name: 'Jean Smith', role: 'Team Member' }
-  ]
+  // Horizontal scroll for featured section
+  const sectionRef = useRef(null);
+  const { scrollYProgress: horizontalScroll } = useScroll({
+    target: sectionRef,
+    offset: ['start end', 'end start'],
+  });
+  const xTransform = useTransform(horizontalScroll, [0, 1], ['10%', '-30%']);
 
   return (
-    <div className="dashboard-wrapper">
-      <SiteHeader />
-      <div className="dashboard-container">
-        <DashboardSidebar />
-        <div>
-          <h2>Welcome, {session?.user?.email}</h2>
-          <p className='hover:cursor-pointer border inline-block px-4 py-3 mt-4' onClick={handleSignOut}>
-            Signout
+    <div ref={containerRef} className="relative bg-zinc-950">
+      {/* Hero Section */}
+      <section className="h-[90vh] flex flex-col justify-center px-6 md:px-12 relative overflow-hidden">
+        <motion.div 
+          style={{ y: heroY, opacity: heroOpacity }}
+          className="z-10 relative"
+        >
+          <h1 className="text-7xl md:text-9xl font-extrabold tracking-tighter uppercase leading-[0.85] text-zinc-50">
+            Design <br />
+            <span className="text-transparent bg-clip-text bg-linear-to-r from-emerald-400 to-cyan-500">
+              Forward.
+            </span>
+          </h1>
+          <p className="mt-8 text-xl text-zinc-400 max-w-xl font-light leading-relaxed">
+            Curated objects for the modern minimalist. Elevate your space with functional art.
           </p>
+          <Link 
+            to="/shop" 
+            className="inline-flex items-center gap-3 mt-12 text-sm font-bold tracking-widest uppercase pb-2 border-b-2 border-emerald-500 hover:text-emerald-400 transition-colors group"
+          >
+            Explore Collection
+            <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
+          </Link>
+        </motion.div>
+
+        {/* Abstract Background Elements */}
+        <div className="absolute top-0 right-0 w-full h-full opacity-20 pointer-events-none overflow-hidden">
+          <div className="absolute top-1/4 -right-1/4 w-200 h-200 bg-emerald-500 rounded-full blur-[150px]" />
+          <div className="absolute bottom-1/4 left-1/4 w-150 h-150 bg-cyan-500 rounded-full blur-[150px]" />
         </div>
-        <main className="dashboard-main">
-          <div className="dashboard-top">
-            {/* Data Analytics Section */}
-            <section className="analytics-section">
-              <div className="section-header">
-                <h2>Data Analytics</h2>
-                <div className="controls">
-                  <button className="btn-small">All ▼</button>
-                  <button className="btn-small">Filters ▼</button>
-                </div>
-              </div>
-              
-              <div className="metrics-row">
-                <div className="metric">
-                  <div className="metric-label">Total</div>
-                  <div className="metric-value">$12.9B</div>
-                  <div className="metric-change positive">↑ 8.8%</div>
-                </div>
-                <div className="metric">
-                  <div className="metric-label">Average</div>
-                  <div className="metric-value">$24.6K</div>
-                  <div className="metric-change positive">↑ 28.7%</div>
-                </div>
-                <div className="metric">
-                  <div className="metric-label">Earnings analysis</div>
-                  <div className="metric-value">$1.00%</div>
-                  <div className="metric-change positive">↑ 4.88%</div>
-                </div>
-              </div>
+      </section>
 
-              <div className="charts-row">
-                <div className="chart-placeholder">
-                  <div className="chart-title">Line Chart</div>
-                  <svg viewBox="0 0 300 150" style={{width: '100%', height: '120px'}}>
-                    <polyline points="10,100 60,80 110,70 160,85 210,60 260,75" fill="none" stroke="#00d4ff" strokeWidth="2"/>
-                    <polyline points="10,110 60,95 110,90 160,105 210,85 260,95" fill="none" stroke="#a78bfa" strokeWidth="2" opacity="0.6"/>
-                  </svg>
-                </div>
-                <div className="chart-placeholder">
-                  <div className="chart-title">Bar Chart</div>
-                  <svg viewBox="0 0 300 150" style={{width: '100%', height: '120px'}}>
-                    <rect x="40" y="80" width="30" height="50" fill="#00d4ff"/>
-                    <rect x="80" y="60" width="30" height="70" fill="#a78bfa"/>
-                    <rect x="120" y="70" width="30" height="60" fill="#06b6d4"/>
-                    <rect x="160" y="40" width="30" height="90" fill="#10b981"/>
-                    <rect x="200" y="65" width="30" height="65" fill="#f59e0b"/>
-                  </svg>
-                </div>
-                <div className="chart-placeholder pie-chart">
-                  <div className="chart-title">Pie Chart</div>
-                  <svg viewBox="0 0 120 120" style={{width: '100%', height: '120px'}}>
-                    <circle cx="60" cy="60" r="45" fill="none" stroke="#00d4ff" strokeWidth="20" strokeDasharray="70.7 141.4"/>
-                    <circle cx="60" cy="60" r="45" fill="none" stroke="#a78bfa" strokeWidth="20" strokeDasharray="70.7 141.4" style={{transform: 'rotate(180deg)', transformOrigin: '60px 60px'}}/>
-                  </svg>
-                  <div className="pie-legend">
-                    <div><span style={{color: '#00d4ff'}}>●</span> Real from - 55%</div>
-                    <div><span style={{color: '#a78bfa'}}>●</span> Alternatives - 65%</div>
-                  </div>
-                </div>
+      {/* Featured Horizontal Scroller */}
+      <section ref={sectionRef} className="py-32 overflow-hidden bg-zinc-900 border-y border-zinc-800">
+        <div className="px-6 md:px-12 mb-16 flex justify-between items-end">
+          <h2 className="text-4xl md:text-6xl font-bold tracking-tighter uppercase">Featured Objects</h2>
+          <Link to="/shop" className="text-sm tracking-widest uppercase hover:text-emerald-400">View All</Link>
+        </div>
+        
+        <motion.div 
+          style={{ x: xTransform }}
+          className="flex gap-8 px-6 md:px-12 w-max"
+        >
+          {PRODUCTS.slice(0, 4).map((product, idx) => (
+            <Link 
+              key={product.id} 
+              to={`/product/${product.id}`}
+              className="group block relative w-75 md:w-112.5 aspect-4/5 overflow-hidden rounded-sm bg-zinc-800 shrink-0"
+            >
+              <motion.img 
+                whileHover={{ scale: 1.05 }}
+                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                src={product.image} 
+                alt={product.name}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-linear-to-t from-zinc-950/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="absolute bottom-0 left-0 p-6 md:p-8 translate-y-4 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-500">
+                <p className="text-xs tracking-widest text-emerald-400 mb-2 uppercase">{product.category}</p>
+                <h3 className="text-2xl font-bold">{product.name}</h3>
+                <p className="text-lg text-zinc-300 mt-2">${product.price}</p>
               </div>
-            </section>
-          </div>
+            </Link>
+          ))}
+        </motion.div>
+      </section>
 
-          <div className="dashboard-bottom">
-            {/* Master Record Section */}
-            <section className="master-section">
-              <div className="section-header">
-                <h2>Master Record</h2>
-                <button className="btn-add">+ Add New</button>
-              </div>
-              <div className="master-controls">
-                <input type="search" placeholder="Search..." className="search-input"/>
-                <div className="controls-right">
-                  <span className="control-dots">⋯</span>
-                </div>
-              </div>
-              <div className="table-scroll">
-                <table className="master-table">
-                  <thead>
-                    <tr>
-                      <th>ID ↑</th>
-                      <th>Name</th>
-                      <th>Date ↓</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {masterRecords.map((record) => (
-                      <tr key={record.id}>
-                        <td>{record.id}</td>
-                        <td>{record.name}</td>
-                        <td>{record.date}</td>
-                        <td><span className="status-badge">{record.status}</span></td>
-                        <td>{record.actions}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-
-            {/* Right Sidebar Widgets */}
-            <div className="dashboard-widgets">
-              {/* Recent Activity */}
-              <section className="widget">
-                <div className="widget-header">
-                  <h3>Recent Activity</h3>
-                  <span className="widget-menu">⋯</span>
-                </div>
-                <div className="activity-list">
-                  {recentActivityItems.map((item, idx) => (
-                    <div key={idx} className="activity-item">
-                      <span className="activity-icon">{item.icon}</span>
-                      <div className="activity-info">
-                        <p>{item.text}</p>
-                        <small>{item.time}</small>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              {/* System Status */}
-              <section className="widget">
-                <div className="widget-header">
-                  <h3>System Status</h3>
-                  <span className="widget-menu">⋯</span>
-                </div>
-                <div className="status-gauge">
-                  <svg viewBox="0 0 200 120" style={{width: '100%', height: '100px'}}>
-                    <path d="M 30 100 A 70 70 0 0 1 170 100" fill="none" stroke="#e5e7eb" strokeWidth="8" strokeLinecap="round"/>
-                    <path d="M 30 100 A 70 70 0 0 1 130 50" fill="none" stroke="#00d4ff" strokeWidth="8" strokeLinecap="round"/>
-                  </svg>
-                  <p className="status-text">Status</p>
-                </div>
-              </section>
-
-              {/* Team Members */}
-              <section className="widget">
-                <div className="widget-header">
-                  <h3>Team Members</h3>
-                  <span className="widget-menu">⋯</span>
-                </div>
-                <div className="members-list">
-                  {teamMembers.map((member, idx) => (
-                    <div key={idx} className="member-item">
-                      <span className="member-icon">{member.icon}</span>
-                      <div>
-                        <p className="member-name">{member.name}</p>
-                        <small>{member.role}</small>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            </div>
-          </div>
-        </main>
-      </div>
-      <SiteFooter />
+      {/* Philosophy Section */}
+      <section className="py-32 px-6 md:px-12 max-w-6xl mx-auto text-center">
+        <motion.h2 
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          className="text-3xl md:text-5xl font-bold tracking-tight leading-tight"
+        >
+          We believe in the power of less. Every item in our collection is rigorously selected for its uncompromising design and enduring quality.
+        </motion.h2>
+      </section>
     </div>
   );
-}
-
-export default Home ;
+};

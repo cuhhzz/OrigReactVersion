@@ -2,13 +2,14 @@ import { useState } from 'react'
 import { HashLink } from './hashLink.jsx'
 
 
-export default function SiteHeader() {
+export default function LandingSiteHeader() {
 
-  const [open, setOpen] = useState(false)
+  // eslint-disable-next-line no-empty-pattern
+  const [] = useState(false)
 
   
   return (
-    <header className="site-header">
+    <header className="landing-site-header">
       <div className="logo-container">
         <img
           src="/images/logo.png"
@@ -33,8 +34,9 @@ export default function SiteHeader() {
         Don't have an account yet?
       </a>
 
-      <button className='border group  hover:border-amber-400 rounded-[20px] p-2 w-[120px]'>
-        <a href="/signin" className='w-2 select-none group-hover:text-amber-400'>Sign In</a>
+      <button className='border group  hover:border-amber-400 rounded-[20px] p-2 w-30'>
+        {/* <a href="/signin" className='w-2 select-none group-hover:text-amber-400'>Sign In</a> */}
+        <a href="/homepage" className='w-2 select-none group-hover:text-amber-400'>Sign In</a>
       </button>
     </header>
   )

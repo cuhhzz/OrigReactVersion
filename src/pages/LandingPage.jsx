@@ -1,5 +1,4 @@
-import SiteHeader from '../components/SiteHeader.jsx'
-import SiteFooter from '../components/SiteFooter.jsx'
+import LandingSiteHeader from '../components/LandingSiteHeader.jsx'
 import { useHashScroll } from '../components/useHashScroll.js'
 
 export default function LandingPage() {
@@ -7,7 +6,7 @@ export default function LandingPage() {
 
   return (
     <div className="app-container">
-      <SiteHeader />
+      <LandingSiteHeader />
 
       <main>
         <section id="home" className="hero">
@@ -74,8 +73,6 @@ export default function LandingPage() {
 
         <h1 className="visually-hidden">ORIGINALS Printing Co.</h1>
       </main>
-
-      <SiteFooter />
     </div>
   )
 }

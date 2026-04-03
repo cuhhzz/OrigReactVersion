@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { userAuth } from "../auth/AuthContext";
 
@@ -7,28 +7,78 @@ const SignIn = () => {
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState("");
-    const [loading, setLoading] = useState(""); 
+    const [successMessage, setSuccessMessage] = useState("");
+    const [errorCode, setErrorCode] = useState("");
+    const [loading, setLoading] = useState(false);
 
-    const {session, signInUser} = userAuth();
+    const {session, signInUser, signUpNewUser, checkEmailVerification} = userAuth();
     const navigate =  useNavigate();
     console.log(session);
     console.log(email, password);
 
     const handleSignIn = async (e) => {
         e.preventDefault();
+        setError("");
+        setSuccessMessage("");
+        setErrorCode("");
         setLoading(true);
         try {
             const result =  await signInUser(email, password);
             if (result.success) {
                 console.log("User signed in successfully:", result.data);
                 navigate("/homepage");
+                return;
             }
+            setError(result.error || "Unable to sign in. Please try again.");
+            setErrorCode(result.code || "");
         } catch (error) {
             setError(error.message);
+            setErrorCode("");
         } finally {
             setLoading(false);
         }
     };
+
+    const handleCreateAccount = async () => {
+        setError("");
+        setSuccessMessage("");
+        setErrorCode("");
+        setLoading(true);
+        try {
+            const result = await signUpNewUser(email, password);
+            if (result.success) {
+                setSuccessMessage(result.message || "Account created. Verify your email before signing in.");
+                return;
+            }
+            setError(result.error || "Unable to create account. Please try again.");
+            setErrorCode(result.code || "");
+        } catch (error) {
+            setError(error.message || "Unable to create account.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (session) {
+            navigate("/homepage");
+        }
+    }, [session, navigate]);
+
+    useEffect(() => {
+        if (errorCode !== "auth/email-not-verified") {
+            return undefined;
+        }
+
+        const intervalId = setInterval(async () => {
+            const result = await checkEmailVerification();
+            if (result.success && result.verified) {
+                navigate("/homepage");
+            }
+        }, 3000);
+
+        return () => clearInterval(intervalId);
+    }, [errorCode, checkEmailVerification, navigate]);
 
 
     return (
@@ -47,6 +97,7 @@ const SignIn = () => {
                 {/* inputs */}
                 <div className="flex flex-col py-4">
                     
+                    {/* email */}
                     <div>
                         <label htmlFor="email" className="block text-sm/6 font-medium text-gray-100">Email address</label>
                         <div className="mt-2">
@@ -54,6 +105,7 @@ const SignIn = () => {
                         </div>
                     </div>
 
+                    {/* password */}
                     <div>
                         <div className="flex items-center justify-between">
                             <label htmlFor="password" className="block text-sm/6 font-medium text-gray-100">Password</label>
@@ -85,11 +137,25 @@ const SignIn = () => {
                         </div>
                     </div>
 
+                    
                     <div className="mt-2">
                         <button className="flex w-full justify-center rounded-md bg-amber-500 px-3 py-1.5 text-sm/6 font-semibold text-white hover:bg-amber-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500" type="submit" disabled={loading} >
-                            Sign in
+                            {loading ? "Please wait..." : "Sign in"}
                         </button>
                     </div>
+                    {errorCode === "auth/invalid-credential" && email && password && (
+                        <div className="mt-2">
+                            <button
+                                type="button"
+                                onClick={handleCreateAccount}
+                                disabled={loading}
+                                className="flex w-full justify-center rounded-md border border-amber-500 px-3 py-1.5 text-sm/6 font-semibold text-amber-400 hover:bg-amber-500/10 disabled:opacity-60"
+                            >
+                                Create account with this email
+                            </button>
+                        </div>
+                    )}
+                    {successMessage && <p className="text-green-400 text-center mt-4">{successMessage}</p>}
                     {error && <p className="text-red-600 text-center mt-4">{error}</p>}
                 </div>
                 <p className="mt-2 text-center text-sm/6 text-gray-400">

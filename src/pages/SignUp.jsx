@@ -1,28 +1,73 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { userAuth } from "../auth/AuthContext";
+import { doc, getFirestore, setDoc } from "firebase/firestore";
+import { app } from "../config/FirebaseConfig";
 
 const SignUp = () => {
     const [email, setEmail] = useState("");
+    const [phone, setPhone] = useState("");
     const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState("");
+    const [successMessage, setSuccessMessage] = useState("");
     const [loading, setLoading] = useState(false); 
 
     const {session, signUpNewUser} = userAuth();
+    const db = getFirestore(app);
     const navigate =  useNavigate();
-    console.log(session);
-    console.log(email, password);
+
+    const validations = {
+        length: password.length >= 8,
+        uppercase: /[A-Z]/.test(password),
+        lowercase: /[a-z]/.test(password),
+        number: /\d/.test(password),
+        special: /[^A-Za-z0-9]/.test(password),
+    };
+
+    const strengthScore = Object.values(validations).filter(Boolean).length;
+    const isPasswordValid = Object.values(validations).every(Boolean);
+    const isPhoneValid = /^(09|\+639)\d{9}$/.test(phone);
+    const doPasswordsMatch = confirmPassword.length > 0 && password === confirmPassword;
+    const isFormValid = isPasswordValid && isPhoneValid && doPasswordsMatch;
+
+    let strengthText = "";
+    let strengthClassName = "";
+
+    if (password.length > 0) {
+        if (strengthScore === 5) {
+            strengthText = "Strong";
+            strengthClassName = "text-green-400";
+        } else if (strengthScore >= 3) {
+            strengthText = "Moderate";
+            strengthClassName = "text-yellow-300";
+        } else {
+            strengthText = "Weak";
+            strengthClassName = "text-red-400";
+        }
+    }
 
     const handleSignUp = async (e) => {
         e.preventDefault();
         setError("");
+        setSuccessMessage("");
+
+        if (!isFormValid) {
+            setError("Please ensure all fields are correct and password requirements are met.");
+            return;
+        }
+
         setLoading(true);
         try {
             const result =  await signUpNewUser(email, password);
             if (result.success) {
-                console.log("User signed up successfully:", result.data);
-                navigate("/homepage");
+                await setDoc(doc(db, "users", result.data.user.uid), {
+                    email,
+                    phone,
+                }, { merge: true });
+
+                setSuccessMessage(result.message || "Account created. Verify your email before signing in.");
                 return;
             }
             setError(result.error || "Unable to sign up. Please try again.");
@@ -31,6 +76,14 @@ const SignUp = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handlePhoneChange = (e) => {
+        const sanitized = e.target.value
+            .replace(/[^\d+]/g, "")
+            .replace(/(?!^)\+/g, "");
+
+        setPhone(sanitized);
     };
 
 
@@ -50,13 +103,37 @@ const SignUp = () => {
 
                 {/* inputs */}
                 <div className="flex flex-col py-4">
+                    {/* email */}
                     <div>
                         <label htmlFor="email" className="block text-sm/6 font-medium text-gray-100">Email address</label>
                         <div className="mt-2">
                             <input onChange={(e) => setEmail(e.target.value)} className="block w-full rounded-md bg-white/5 px-3 py-1.5 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-amber-400 sm:text-sm/6"  type="email" required autoComplete="email" placeholder="sample@gmail.com"/>
                         </div>
                     </div>
+                    
+                    {/* tel */}
+                    <div>
+                        <label htmlFor="phone" className="block text-sm/6 font-medium text-gray-100">Phone number</label>
+                        <div className="mt-2">
+                            <input
+                                value={phone}
+                                onChange={handlePhoneChange}
+                                className={`block w-full rounded-md bg-white/5 px-3 py-1.5 text-base text-white outline-1 -outline-offset-1 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-amber-400 sm:text-sm/6 ${phone.length > 0 && !isPhoneValid ? "outline-red-500/80" : "outline-white/10"}`}
+                                type="tel"
+                                required
+                                autoComplete="tel"
+                                inputMode="numeric"
+                                pattern="^(09\\d{9}|\\+639\\d{9})$"
+                                title="Use 09xxxxxxxxx or +639xxxxxxxxx"
+                                placeholder="Phone (e.g., 09xxxxxxxxx or +639xxxxxxxxx)"
+                            />
+                            {phone.length > 0 && !isPhoneValid && (
+                                <p className="mt-2 text-xs text-red-400">Use 09xxxxxxxxx or +639xxxxxxxxx.</p>
+                            )}
+                        </div>
+                    </div>
 
+                    {/* password */}
                     <div>
                         <div className="flex items-center justify-between">
                             <label htmlFor="password" className="block text-sm/6 font-medium text-gray-100">Password</label>
@@ -65,8 +142,9 @@ const SignUp = () => {
                             </div>
 
                         </div>
+
                         <div className="mt-2 relative">
-                            <input onChange={(e) => setPassword(e.target.value)} className="block w-full rounded-md bg-white/5 px-3 py-1.5 pr-10 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-amber-400 sm:text-sm/6" type={showPassword ? "text" : "password"} required autoComplete="current-password" 
+                            <input onChange={(e) => setPassword(e.target.value)} className="block w-full rounded-md bg-white/5 px-3 py-1.5 pr-10 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-amber-400 sm:text-sm/6" type={showPassword ? "text" : "password"} required autoComplete="new-password" 
                             placeholder="Sample@123" />
                             <button
                                 type="button"
@@ -88,11 +166,43 @@ const SignUp = () => {
                         </div>
                     </div>
 
+                    {/* confirm password */}
+                    <div>
+                        <label htmlFor="confirm-password" className="block text-sm/6 font-medium text-gray-100">Confirm Password</label>
+                        <div className="mt-2">
+                            <input
+                                id="confirm-password"
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                className={`block w-full rounded-md bg-white/5 px-3 py-1.5 text-base text-white outline-1 -outline-offset-1 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-amber-400 sm:text-sm/6 ${confirmPassword.length > 0 && doPasswordsMatch ? "outline-green-500/80" : confirmPassword.length > 0 ? "outline-red-500/80" : "outline-white/10"}`}
+                                type={showPassword ? "text" : "password"}
+                                required
+                                autoComplete="new-password"
+                                placeholder="Re-enter password"
+                            />
+                            {confirmPassword.length > 0 && !doPasswordsMatch && (
+                                <p className="mt-2 text-xs text-red-400">Passwords do not match.</p>
+                            )}
+                        </div>
+                    </div>
+
+                    <div id="password-requirements" className="mt-3 text-sm text-gray-200">
+                        <p>Password must contain:</p>
+                        <ul className="list-disc pl-5">
+                            <li id="req-length" className={validations.length ? "text-green-400" : "text-red-400"}>At least 8 characters</li>
+                            <li id="req-uppercase" className={validations.uppercase ? "text-green-400" : "text-red-400"}>At least one uppercase letter</li>
+                            <li id="req-lowercase" className={validations.lowercase ? "text-green-400" : "text-red-400"}>At least one lowercase letter</li>
+                            <li id="req-number" className={validations.number ? "text-green-400" : "text-red-400"}>At least one number</li>
+                            <li id="req-special" className={validations.special ? "text-green-400" : "text-red-400"}>At least one special character</li>
+                        </ul>
+                        <p id="strength-text" className={`mt-2 text-xs font-semibold ${strengthClassName}`}>{strengthText}</p>
+                    </div>
+
                     <div className="mt-2">
-                        <button className="flex w-full justify-center rounded-md bg-amber-500 px-3 py-1.5 text-sm/6 font-semibold text-white hover:bg-amber-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500" type="submit" disabled={loading} >
-                            Sign up
+                        <button className="flex w-full justify-center rounded-md bg-amber-500 px-3 py-1.5 text-sm/6 font-semibold text-white hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500" type="submit" disabled={loading || !isFormValid} >
+                            {loading ? "Please wait..." : "Sign up"}
                         </button>
                     </div>
+                    {successMessage && <p className="text-green-400 text-center mt-4">{successMessage}</p>}
                     {error && <p className="text-red-600 text-center mt-4">{error}</p>}
                 </div>
                 <p className="mt-2 text-center text-sm/6 text-gray-400">

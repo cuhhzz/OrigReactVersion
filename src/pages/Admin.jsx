@@ -9,7 +9,6 @@ export default function Admin() {
         <h1>Admin</h1>
         <p>This is a placeholder admin route. (setup-admin is excluded from the client build.)</p>
       </main>
-      <SiteFooter />
     </div>
   )
 }

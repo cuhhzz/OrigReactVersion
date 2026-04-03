@@ -52,7 +52,7 @@ main {
 }
 
 /* Header (ported from web component styles) */
-.site-header {
+.landing-site-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -73,7 +73,10 @@ main {
   gap: 1rem;
 }
 
-.logo { height: 50px; }
+.logo { 
+  height: 50px;
+  filter: drop-shadow(0 0 5px oklch(100% 0 0 / 50%)); 
+}
 
 .logo-text {
   font-size: 1.5rem;
@@ -81,7 +84,10 @@ main {
 }
 
 .logo-text .originals { color: white; }
-.logo-text .printing-co { color: var(--accent-color); }
+.logo-text .printing-co { 
+  color: var(--accent-color); 
+  text-shadow: 0 0 10px #FFA500;
+}
 .site-nav a {
   margin: 0 1rem;
   color: white;
