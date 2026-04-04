@@ -53,13 +53,12 @@ export const AuthContextProvider = ({ children }) => {
     try {
       const data = await createUserWithEmailAndPassword(auth, email, password);
       await sendEmailVerification(data.user);
-      await firebaseSignOut(auth);
 
       return {
         success: true,
         data,
-        requiresEmailVerification: true,
-        message: "Account created. Please verify your email, then sign in.",
+        requiresEmailVerification: false,
+        message: "Account created successfully.",
       };
     } catch (error) {
       console.error("Error signing up:", error);
