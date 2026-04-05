@@ -1,5 +1,4 @@
 import { createBrowserRouter } from "react-router-dom";
-import App from "./App";
 import SignUp from "./pages/SignUp";
 import SignIn from "./pages/SignIn";
 import { Home } from "./pages/Home";
@@ -16,7 +15,6 @@ import AdminSignIn from "./pages/AdminSignIn";
 import AdminSignUp from "./pages/AdminSignUp";
 
 export const router = createBrowserRouter([
-  { path: "/", element: <App /> },
   { path: "/signup", element: <SignUp /> },
   { path: "/signin", element: <SignIn /> },
   { path: "/admin/signin", element: <AdminSignIn /> },
@@ -32,6 +30,7 @@ export const router = createBrowserRouter([
   {
     element: <Layout />,
     children: [
+      { index: true, element: <Home /> },
       { path: "/homepage", 
         element:(
           <PrivateRoute requireNonAdmin>

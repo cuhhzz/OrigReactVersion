@@ -28,7 +28,7 @@ export const Home = () => {
   return (
     <div ref={containerRef} className="relative bg-zinc-950">
       {/* Hero Section */}
-      <section className="h-[90vh] flex flex-col justify-center px-6 md:px-12 relative overflow-hidden">
+      <section className="h-[90vh] flex flex-col justify-center px-6 md:px-12 relative overflow-hidden pt-24">
         <motion.div 
           style={{ y: heroY, opacity: heroOpacity }}
           className="z-10 relative"

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { userAuth } from "../auth/AuthContext";
 
@@ -21,7 +21,7 @@ const SignIn = () => {
         setErrorCode("");
         setLoading(true);
         try {
-            const result =  await signInUser(email, password);
+            const result = await signInUser(email, password);
             if (result.success) {
                 console.log("User signed in successfully:", result.data);
                 navigate(result.profile?.role === "admin" ? "/admin" : "/homepage");
@@ -80,92 +80,110 @@ const SignIn = () => {
 
 
     return (
-    <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8"> 
-        <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-            <img src="/public/images/logo.png" alt="Your Company" className="mx-auto h-30 w-auto" />
-            <h2 className="mt-2 text-center text-2xl/9 font-bold tracking-tight text-white">Sign in to your account</h2>
-        </div>
-
-        <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-            <form onSubmit={handleSignIn} className="space-y-6 p-10 backdrop-blur-xs rounded-xl">
-                <button type="button" className="absolute top-4 right-4 text-gray-400 hover:text-white text-lg" onClick={() => navigate("/")}>
-                    &times; 
-                </button>
-
-                {/* inputs */}
-                <div className="flex flex-col py-4">
-                    
-                    {/* email */}
-                    <div>
-                        <label htmlFor="email" className="block text-sm/6 font-medium text-gray-100">Email address</label>
-                        <div className="mt-2">
-                            <input onChange={(e) => setEmail(e.target.value)} className="block w-full rounded-md bg-white/5 px-3 py-1.5 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-amber-400 sm:text-sm/6" type="email" required autoComplete="email" placeholder="sample@gmail.com" />
-                        </div>
-                    </div>
-
-                    {/* password */}
-                    <div>
-                        <div className="flex items-center justify-between">
-                            <label htmlFor="password" className="block text-sm/6 font-medium text-gray-100">Password</label>
-                            <div className="text-sm">
-                                <a href="#" className="font-semibold text-amber-400 hover:text-amber-300">Forgot password?</a>
+        <div className="relative min-h-screen overflow-hidden bg-zinc-950 text-white">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.18),transparent_22%),radial-gradient(circle_at_bottom_right,rgba(6,182,212,0.12),transparent_25%)]" />
+            <div className="relative mx-auto flex min-h-screen max-w-6xl items-center justify-center px-6 py-12">
+                <div className="w-full overflow-hidden rounded-[32px] border border-white/10 bg-white/5 shadow-2xl shadow-black/40 backdrop-blur-2xl">
+                    <div className="grid gap-8 md:grid-cols-[1.05fr_0.95fr]">
+                        <div className="space-y-6 px-8 py-10 md:px-12 md:py-14">
+                            <span className="inline-flex rounded-full border border-emerald-500/40 bg-emerald-500/10 px-4 py-1 text-xs uppercase tracking-[0.35em] text-emerald-300">
+                                Originals Printing Co.
+                            </span>
+                            <div className="space-y-4">
+                                <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
+                                    Welcome back.
+                                </h1>
+                                <p className="max-w-xl text-zinc-300">
+                                    Sign in and continue shopping with the same premium modern experience as the home page.
+                                </p>
                             </div>
-
+                            <div className="rounded-3xl border border-white/10 bg-zinc-950/80 p-6 text-sm text-zinc-300 shadow-xl shadow-black/20">
+                                <p className="font-semibold text-white">Need help?</p>
+                                <p className="mt-2 leading-7">
+                                    Enter your registered email and password to access orders, cart data, and personalized recommendations.
+                                </p>
+                            </div>
                         </div>
-                        <div className="mt-2 relative">
-                            <input onChange={(e) => setPassword(e.target.value)} className="block w-full rounded-md bg-white/5 px-3 py-1.5 pr-10 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-amber-400 sm:text-sm/6" type={showPassword ? "text" : "password"} required autoComplete="current-password" 
-                            placeholder="Sample@123" />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword((prev) => !prev)}
-                                className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-300 hover:text-white"
-                                aria-label={showPassword ? "Hide password" : "Show password"}
-                            >
-                                {showPassword ? (
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="h-5 w-5">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.5a10.523 10.523 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 1-4.243-4.243m4.242 4.242L9.88 9.88" />
-                                    </svg>
-                                ) : (
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="h-5 w-5">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178Z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                                    </svg>
-                                )}
-                            </button>
+                        <div className="relative overflow-hidden rounded-[32px] bg-zinc-950/90 px-8 py-10 md:px-12 md:py-14">
+                            <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-emerald-500/10 to-transparent" />
+                            <div className="relative">
+                                <button type="button" className="absolute right-4 top-4 text-zinc-400 transition hover:text-white" onClick={() => navigate("/") }>
+                                    &times;
+                                </button>
+                                <div className="mb-8">
+                                    <p className="text-sm uppercase tracking-[0.35em] text-emerald-300">Sign in</p>
+                                    <h2 className="mt-4 text-3xl font-bold tracking-tight text-white">Continue to Originals</h2>
+                                </div>
+                                <form onSubmit={handleSignIn} className="space-y-6">
+                                    <div className="space-y-3">
+                                        <label htmlFor="email" className="block text-sm font-medium text-zinc-300">Email address</label>
+                                        <input
+                                            id="email"
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            type="email"
+                                            required
+                                            autoComplete="email"
+                                            placeholder="sample@gmail.com"
+                                            className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-zinc-500 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20"
+                                        />
+                                    </div>
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <label htmlFor="password" className="text-sm font-medium text-zinc-300">Password</label>
+                                            <a href="#" className="text-sm font-semibold text-amber-400 hover:text-amber-300">Forgot password?</a>
+                                        </div>
+                                        <div className="relative">
+                                            <input
+                                                id="password"
+                                                onChange={(e) => setPassword(e.target.value)}
+                                                type={showPassword ? "text" : "password"}
+                                                required
+                                                autoComplete="current-password"
+                                                placeholder="Sample@123"
+                                                className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 pr-12 text-white placeholder:text-zinc-500 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPassword((prev) => !prev)}
+                                                className="absolute inset-y-0 right-0 flex items-center px-3 text-zinc-400 hover:text-white"
+                                                aria-label={showPassword ? "Hide password" : "Show password"}
+                                            >
+                                                {showPassword ? "Hide" : "Show"}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        disabled={loading}
+                                        className="w-full rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-zinc-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        {loading ? "Please wait..." : "Sign in"}
+                                    </button>
+                                    {errorCode === "auth/invalid-credential" && email && password && (
+                                        <button
+                                            type="button"
+                                            onClick={handleCreateAccount}
+                                            disabled={loading}
+                                            className="w-full rounded-2xl border border-emerald-500 px-4 py-3 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-500/10 disabled:opacity-60"
+                                        >
+                                            Create account with this email
+                                        </button>
+                                    )}
+                                    {successMessage && <p className="text-sm text-emerald-300">{successMessage}</p>}
+                                    {error && <p className="text-sm text-red-400">{error}</p>}
+                                </form>
+                                <p className="mt-8 text-center text-sm text-zinc-400">
+                                    Don&apos;t have an account?{' '}
+                                    <Link to="/signup" className="font-semibold text-amber-400 hover:text-amber-300">
+                                        Sign up here!
+                                    </Link>
+                                </p>
+                            </div>
                         </div>
                     </div>
-
-                    
-                    <div className="mt-2">
-                        <button className="flex w-full justify-center rounded-md bg-amber-500 px-3 py-1.5 text-sm/6 font-semibold text-white hover:bg-amber-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500" type="submit" disabled={loading} >
-                            {loading ? "Please wait..." : "Sign in"}
-                        </button>
-                    </div>
-                    {errorCode === "auth/invalid-credential" && email && password && (
-                        <div className="mt-2">
-                            <button
-                                type="button"
-                                onClick={handleCreateAccount}
-                                disabled={loading}
-                                className="flex w-full justify-center rounded-md border border-amber-500 px-3 py-1.5 text-sm/6 font-semibold text-amber-400 hover:bg-amber-500/10 disabled:opacity-60"
-                            >
-                                Create account with this email
-                            </button>
-                        </div>
-                    )}
-                    {successMessage && <p className="text-green-400 text-center mt-4">{successMessage}</p>}
-                    {error && <p className="text-red-600 text-center mt-4">{error}</p>}
                 </div>
-                <p className="mt-2 text-center text-sm/6 text-gray-400">
-                    Don't have an account? 
-                    {" "}
-                    <Link to="/signup" className=" font-semibold text-amber-400 hover:text-amber-300">
-                        Sign up here!
-                    </Link>
-                </p>
-            </form>
+            </div>
         </div>
-    </div>
     );
 };
 

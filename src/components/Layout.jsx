@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { Outlet, Link } from 'react-router';
-import { Menu, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router';
+import { ShoppingBag, Box, Menu, X } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 import { userAuth } from '../auth/AuthContext';
+import { motion, AnimatePresence } from 'motion/react';
 
 export const Layout = () => {
   const { cart } = useStore();
@@ -11,11 +12,18 @@ export const Layout = () => {
 
   const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
+  const handleSignOut = async () => {
+    const result = await signOut();
+    if (result?.success) {
+      navigate('/signin');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-50 font-sans selection:bg-emerald-500/30">
-      <nav className="fixed top-0 left-0 right-0 z-50 mix-blend-difference flex items-center justify-between px-6 py-6 md:px-12 pointer-events-none">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-zinc-950/80 backdrop-blur-sm flex items-center justify-between px-6 py-6 md:px-12 pointer-events-none">
         <Link to="/" className="text-xl font-bold tracking-tighter uppercase pointer-events-auto">
-          Original Printing Co.
+          Originals Printing Co.
         </Link>
         
         <div className="hidden md:flex items-center gap-8 text-sm font-medium tracking-wide pointer-events-auto">
@@ -32,6 +40,19 @@ export const Layout = () => {
               </span>
             )}
           </Link>
+          {!session ? (
+            <Link to="/signin" className="hover:text-emerald-400 transition-colors">
+              SIGN IN
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="hover:text-emerald-400 transition-colors"
+            >
+              SIGN OUT
+            </button>
+          )}
         </div>
 
         <button 

@@ -64,8 +64,12 @@ export const StoreProvider = ({ children }) => {
 
   const activeProducts = catalog.filter((product) => !product.isArchived);
   const archivedProducts = catalog.filter((product) => product.isArchived);
+  const { session } = userAuth();
 
   const addToCart = (product) => {
+    if (!session) {
+      return false; // User not signed in
+    }
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
       if (existing) {
@@ -75,6 +79,7 @@ export const StoreProvider = ({ children }) => {
       }
       return [...prev, { product, quantity: 1 }];
     });
+    return true;
   };
 
   const removeFromCart = (productId) => {
