@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 // eslint-disable-next-line no-unused-vars
 import { motion } from 'motion/react';
-import { ArchiveRestore, BarChart3, ShieldCheck, ShoppingBag, Users, UserRoundCog, Upload } from 'lucide-react';
+import { ArchiveRestore, BarChart3, ShieldCheck, ShoppingBag, Users, UserRoundCog, Upload, DollarSign, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { userAuth } from '../auth/AuthContext';
 import { useStore } from '../context/StoreContext';
+import PricingForm from '../components/admin/PricingForm';
 
 export default function Admin() {
   const { session, userProfile, users, signOut, suspendUser, deleteUser, restoreUser, setUserRole } = userAuth();
-  const { activeProducts, archivedProducts, archiveProduct, restoreProduct, updateProduct, orders } = useStore();
+  const { activeProducts, archivedProducts, archiveProduct, restoreProduct, updateProduct, addProduct, orders } = useStore();
   const [busyUserId, setBusyUserId] = useState('');
   const [busyProductId, setBusyProductId] = useState('');
   const [selectedProductId, setSelectedProductId] = useState('');
@@ -20,6 +21,19 @@ export default function Admin() {
     description: '',
   });
   const [productMessage, setProductMessage] = useState('');
+  const [savingPricing, setSavingPricing] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newProductForm, setNewProductForm] = useState({
+    name: '',
+    price: '',
+    image: '',
+    sizes: '',
+    description: '',
+    category: '',
+    unitType: 'fixed',
+    pricePerUnit: '',
+  });
+  const [newProductMessage, setNewProductMessage] = useState('');
 
   useEffect(() => {
     if (activeProducts.length === 0) {
@@ -144,6 +158,83 @@ export default function Admin() {
     });
     setProductMessage('Product updated successfully.');
     window.setTimeout(() => setProductMessage(''), 2500);
+  };
+
+  const handleSavePricing = async (pricingData) => {
+    if (!selectedProductId) {
+      return;
+    }
+    setSavingPricing(true);
+    try {
+      updateProduct(selectedProductId, pricingData);
+      setProductMessage('Pricing updated successfully.');
+      window.setTimeout(() => setProductMessage(''), 2500);
+    } finally {
+      setSavingPricing(false);
+    }
+  };
+
+  const handleNewProductUpload = (event) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setNewProductForm((current) => ({ ...current, image: String(reader.result || '') }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCreateProduct = (event) => {
+    event.preventDefault();
+
+    if (!newProductForm.name || !newProductForm.price || !newProductForm.category) {
+      setNewProductMessage('Please fill in all required fields (Name, Price, Category)');
+      window.setTimeout(() => setNewProductMessage(''), 3000);
+      return;
+    }
+
+    const newProduct = {
+      id: `p-${Date.now()}`,
+      name: newProductForm.name,
+      price: Number(newProductForm.price) || 0,
+      image: newProductForm.image,
+      sizes: newProductForm.sizes
+        ? newProductForm.sizes
+            .split(',')
+            .map((size) => size.trim())
+            .filter(Boolean)
+        : [],
+      description: newProductForm.description,
+      category: newProductForm.category,
+      unitType: newProductForm.unitType || 'fixed',
+      pricePerUnit: newProductForm.pricePerUnit ? Number(newProductForm.pricePerUnit) : Number(newProductForm.price),
+      dimensions: {
+        width: null,
+        height: null,
+        length: null,
+      },
+      isArchived: false,
+    };
+
+    addProduct(newProduct);
+    
+    setNewProductForm({
+      name: '',
+      price: '',
+      image: '',
+      sizes: '',
+      description: '',
+      category: '',
+      unitType: 'fixed',
+      pricePerUnit: '',
+    });
+    setShowCreateForm(false);
+    setNewProductMessage('Product created successfully!');
+    window.setTimeout(() => setNewProductMessage(''), 2500);
   };
 
   if (!session) {
@@ -328,6 +419,170 @@ export default function Admin() {
             <div className="rounded-4xl border border-white/10 bg-slate-950/80 p-6 md:p-8">
               <div className="flex items-center justify-between gap-4 mb-6">
                 <div>
+                  <p className="text-xs uppercase tracking-[0.35em] text-emerald-400">Product creation</p>
+                  <h2 className="mt-2 text-2xl font-black uppercase tracking-tight">Add new product</h2>
+                </div>
+                <Plus size={20} className="text-emerald-300" />
+              </div>
+
+              {!showCreateForm ? (
+                <button
+                  onClick={() => setShowCreateForm(true)}
+                  className="rounded-2xl bg-emerald-400 px-5 py-3 text-sm font-bold uppercase tracking-[0.25em] text-slate-950 hover:bg-emerald-300"
+                >
+                  + Create New Product
+                </button>
+              ) : (
+                <form onSubmit={handleCreateProduct} className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <label className="space-y-2 text-sm text-zinc-300">
+                      <span>Product name *</span>
+                      <input
+                        type="text"
+                        value={newProductForm.name}
+                        onChange={(event) => setNewProductForm((current) => ({ ...current, name: event.target.value }))}
+                        placeholder="e.g., Premium Tarpaulin"
+                        className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-zinc-50 outline-none focus:border-emerald-400"
+                        required
+                      />
+                    </label>
+
+                    <label className="space-y-2 text-sm text-zinc-300">
+                      <span>Category *</span>
+                      <input
+                        type="text"
+                        value={newProductForm.category}
+                        onChange={(event) => setNewProductForm((current) => ({ ...current, category: event.target.value }))}
+                        placeholder="e.g., Tarpaulin, DTF, Sticker"
+                        className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-zinc-50 outline-none focus:border-emerald-400"
+                        required
+                      />
+                    </label>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <label className="space-y-2 text-sm text-zinc-300">
+                      <span>Base Price ($) *</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={newProductForm.price}
+                        onChange={(event) => setNewProductForm((current) => ({ ...current, price: event.target.value }))}
+                        className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-zinc-50 outline-none focus:border-emerald-400"
+                        required
+                      />
+                    </label>
+
+                    <label className="space-y-2 text-sm text-zinc-300">
+                      <span>Pricing Unit Type</span>
+                      <select
+                        value={newProductForm.unitType}
+                        onChange={(event) => setNewProductForm((current) => ({ ...current, unitType: event.target.value }))}
+                        className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-zinc-50 outline-none focus:border-emerald-400"
+                      >
+                        <option value="fixed">Fixed Price</option>
+                        <option value="sq_ft">Square Feet</option>
+                        <option value="linear_meter">Linear Meters</option>
+                        <option value="sq_inch">Square Inches</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  {newProductForm.unitType !== 'fixed' && (
+                    <label className="space-y-2 text-sm text-zinc-300">
+                      <span>Price per {newProductForm.unitType === 'linear_meter' ? 'meter' : 'unit'} ($)</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={newProductForm.pricePerUnit}
+                        onChange={(event) => setNewProductForm((current) => ({ ...current, pricePerUnit: event.target.value }))}
+                        className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-zinc-50 outline-none focus:border-emerald-400"
+                      />
+                    </label>
+                  )}
+
+                  <label className="space-y-2 text-sm text-zinc-300 block">
+                    <span>Image URL or upload</span>
+                    <input
+                      type="url"
+                      value={newProductForm.image}
+                      onChange={(event) => setNewProductForm((current) => ({ ...current, image: event.target.value }))}
+                      className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-zinc-50 outline-none focus:border-emerald-400"
+                      placeholder="https://..."
+                    />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleNewProductUpload}
+                      className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-zinc-400 file:mr-4 file:rounded-full file:border-0 file:bg-emerald-400 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-slate-950"
+                    />
+                  </label>
+
+                  <label className="space-y-2 text-sm text-zinc-300 block">
+                    <span>Sizes</span>
+                    <input
+                      type="text"
+                      value={newProductForm.sizes}
+                      onChange={(event) => setNewProductForm((current) => ({ ...current, sizes: event.target.value }))}
+                      className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-zinc-50 outline-none focus:border-emerald-400"
+                      placeholder="S, M, L, XL"
+                    />
+                    <p className="text-xs text-zinc-500">Separate sizes with commas. Leave empty if not applicable.</p>
+                  </label>
+
+                  <label className="space-y-2 text-sm text-zinc-300 block">
+                    <span>Description</span>
+                    <textarea
+                      rows="4"
+                      value={newProductForm.description}
+                      onChange={(event) => setNewProductForm((current) => ({ ...current, description: event.target.value }))}
+                      className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-zinc-50 outline-none focus:border-emerald-400"
+                      placeholder="Describe the product..."
+                    />
+                  </label>
+
+                  <div className="flex gap-3">
+                    <button
+                      type="submit"
+                      className="flex-1 rounded-2xl bg-emerald-400 px-5 py-3 text-sm font-bold uppercase tracking-[0.25em] text-slate-950 hover:bg-emerald-300"
+                    >
+                      Create Product
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCreateForm(false);
+                        setNewProductForm({
+                          name: '',
+                          price: '',
+                          image: '',
+                          sizes: '',
+                          description: '',
+                          category: '',
+                          unitType: 'fixed',
+                          pricePerUnit: '',
+                        });
+                      }}
+                      className="flex-1 rounded-2xl border border-white/10 px-5 py-3 text-sm font-bold uppercase tracking-[0.25em] text-zinc-300 hover:border-emerald-400 hover:text-emerald-300"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+
+                  {newProductMessage && (
+                    <p className={`text-sm ${newProductMessage.includes('created') ? 'text-emerald-300' : 'text-red-300'}`}>
+                      {newProductMessage}
+                    </p>
+                  )}
+                </form>
+              )}
+            </div>
+
+            <div className="rounded-4xl border border-white/10 bg-slate-950/80 p-6 md:p-8">
+              <div className="flex items-center justify-between gap-4 mb-6">
+                <div>
                   <p className="text-xs uppercase tracking-[0.35em] text-emerald-400">Product editor</p>
                   <h2 className="mt-2 text-2xl font-black uppercase tracking-tight">Edit image, price, sizes</h2>
                 </div>
@@ -421,10 +676,33 @@ export default function Admin() {
             </div>
 
             <div className="rounded-4xl border border-white/10 bg-slate-950/80 p-6 md:p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <BarChart3 size={20} className="text-emerald-300" />
-                <h2 className="text-2xl font-black uppercase tracking-tight">Analytics</h2>
+              <div className="flex items-center justify-between gap-4 mb-6">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.35em] text-emerald-400">Dynamic pricing</p>
+                  <h2 className="mt-2 text-2xl font-black uppercase tracking-tight">Configure prices & dimensions</h2>
+                </div>
+                <DollarSign size={20} className="text-emerald-300" />
               </div>
+
+              {activeProducts.length === 0 ? (
+                <div className="rounded-3xl border border-dashed border-white/10 p-8 text-center text-zinc-500">
+                  No active products available to configure.
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm text-zinc-400 mb-4">Select a product above, then configure its pricing and unit type below.</p>
+                  {selectedProductId && (
+                    <PricingForm 
+                      product={activeProducts.find((p) => p.id === selectedProductId)} 
+                      onSave={handleSavePricing}
+                      isLoading={savingPricing}
+                    />
+                  )}
+                </>
+              )}
+            </div>
+
+            <div className="rounded-4xl border border-white/10 bg-slate-950/80 p-6 md:p-8">
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between text-sm">
