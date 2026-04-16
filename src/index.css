@@ -51,6 +51,17 @@ main {
   border: 0;
 }
 
+.quantity-input-no-spinner {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.quantity-input-no-spinner::-webkit-outer-spin-button,
+.quantity-input-no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 /* Header (ported from web component styles) */
 .landing-site-header {
   display: flex;

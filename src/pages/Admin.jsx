@@ -16,7 +16,7 @@ export default function Admin() {
     name: '',
     price: '',
     image: '',
-    sizes: '',
+    sizes: [],
     description: '',
   });
   const [productMessage, setProductMessage] = useState('');
@@ -39,11 +39,19 @@ export default function Admin() {
       return;
     }
 
+    const sizes = Array.isArray(product.sizes)
+      ? product.sizes.map((s) => ({
+          width: typeof s === 'object' ? s.width || '' : '',
+          length: typeof s === 'object' ? s.length || '' : '',
+          sqrMeter: typeof s === 'object' ? s.sqrMeter || '' : '',
+        }))
+      : [];
+
     setProductForm({
       name: product.name || '',
       price: String(product.price ?? ''),
       image: product.image || '',
-      sizes: Array.isArray(product.sizes) ? product.sizes.join(', ') : '',
+      sizes,
       description: product.description || '',
     });
   }, [activeProducts, selectedProductId]);
@@ -140,7 +148,7 @@ export default function Admin() {
     updateProduct(selectedProductId, {
       ...productForm,
       price: Number(productForm.price) || 0,
-      sizes: productForm.sizes,
+      sizes: productForm.sizes.filter((s) => s.width && s.length && s.sqrMeter),
     });
     setProductMessage('Product updated successfully.');
     window.setTimeout(() => setProductMessage(''), 2500);
@@ -357,7 +365,7 @@ export default function Admin() {
                     </label>
 
                     <label className="space-y-2 text-sm text-zinc-300">
-                      <span>Price</span>
+                      <span>Price per linear meter</span>
                       <input
                         type="number"
                         min="0"
@@ -387,15 +395,82 @@ export default function Admin() {
                   </label>
 
                   <label className="space-y-2 text-sm text-zinc-300 block">
-                    <span>Sizes</span>
-                    <input
-                      type="text"
-                      value={productForm.sizes}
-                      onChange={(event) => setProductForm((current) => ({ ...current, sizes: event.target.value }))}
-                      className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-zinc-50 outline-none focus:border-emerald-400"
-                      placeholder="S, M, L"
-                    />
-                    <p className="text-xs text-zinc-500">Separate sizes with commas.</p>
+                    <div className="flex items-center justify-between">
+                      <span>Sizes (Width × Length × Sq.M)</span>
+                      <button
+                        type="button"
+                        onClick={() => setProductForm((current) => ({
+                          ...current,
+                          sizes: [...current.sizes, { width: '', length: '', sqrMeter: '' }],
+                        }))}
+                        className="rounded-full bg-emerald-400/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-300 hover:bg-emerald-400/30"
+                      >
+                        Add size
+                      </button>
+                    </div>
+                    <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
+                      {productForm.sizes.length === 0 ? (
+                        <p className="text-xs text-zinc-500 p-3 border border-dashed border-white/10 rounded-xl">
+                          No sizes added. Click "Add size" to create dimensions.
+                        </p>
+                      ) : (
+                        productForm.sizes.map((size, index) => (
+                          <div key={index} className="flex gap-2 items-end">
+                            <input
+                              type="number"
+                              step="0.1"
+                              min="0"
+                              placeholder="Width (m)"
+                              value={size.width}
+                              onChange={(event) => {
+                                const newSizes = [...productForm.sizes];
+                                newSizes[index].width = Number(event.target.value) || '';
+                                setProductForm((current) => ({ ...current, sizes: newSizes }));
+                              }}
+                              className="flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-zinc-50 outline-none focus:border-emerald-400"
+                            />
+                            <span className="text-zinc-500">×</span>
+                            <input
+                              type="number"
+                              step="0.1"
+                              min="0"
+                              placeholder="Length (m)"
+                              value={size.length}
+                              onChange={(event) => {
+                                const newSizes = [...productForm.sizes];
+                                newSizes[index].length = Number(event.target.value) || '';
+                                setProductForm((current) => ({ ...current, sizes: newSizes }));
+                              }}
+                              className="flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-zinc-50 outline-none focus:border-emerald-400"
+                            />
+                            <span className="text-zinc-500">=</span>
+                            <input
+                              type="number"
+                              step="0.1"
+                              min="0"
+                              placeholder="Sq.M"
+                              value={size.sqrMeter}
+                              onChange={(event) => {
+                                const newSizes = [...productForm.sizes];
+                                newSizes[index].sqrMeter = Number(event.target.value) || '';
+                                setProductForm((current) => ({ ...current, sizes: newSizes }));
+                              }}
+                              className="flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-zinc-50 outline-none focus:border-emerald-400"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newSizes = productForm.sizes.filter((_, i) => i !== index);
+                                setProductForm((current) => ({ ...current, sizes: newSizes }));
+                              }}
+                              className="rounded-lg bg-red-400/20 px-2 py-2 text-xs font-semibold text-red-300 hover:bg-red-400/30"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </label>
 
                   <label className="space-y-2 text-sm text-zinc-300 block">

@@ -52,22 +52,44 @@ export const Cart = () => {
                       <p className="text-xs text-emerald-500 font-bold uppercase tracking-widest mb-1">{item.product.category}</p>
                       <h3 className="text-xl md:text-2xl font-bold">{item.product.name}</h3>
                       <p className="mt-1 text-xs uppercase tracking-widest text-zinc-500">Size: {item.size || 'One size'}</p>
+                      {item.product.basePrice && item.product.sqMeter && (
+                        <p className="mt-2 text-xs text-zinc-400">
+                          ${item.product.basePrice}/m perimeter
+                        </p>
+                      )}
                     </div>
-                    <p className="text-xl font-light">${item.product.price * item.quantity}</p>
+                    <p className="text-xl font-light">${(item.product.price * item.quantity).toFixed(2)}</p>
                   </div>
                   
                   <div className="flex justify-between items-center mt-6">
-                    <div className="flex items-center gap-4 bg-zinc-900 rounded-full px-4 py-2 w-max">
+                    <div className="flex items-center gap-3 bg-zinc-900 rounded-full px-4 py-2 w-max">
                       <button 
                         onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.size)}
                         className="text-zinc-400 hover:text-zinc-50 transition-colors"
+                        aria-label="Decrease quantity"
                       >
                         <Minus size={16} />
                       </button>
-                      <span className="w-4 text-center text-sm font-bold">{item.quantity}</span>
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        inputMode="numeric"
+                        value={item.quantity}
+                        onChange={(event) => {
+                          const nextQuantity = Number.parseInt(event.target.value, 10);
+                          if (Number.isNaN(nextQuantity)) {
+                            return;
+                          }
+                          updateQuantity(item.product.id, nextQuantity, item.size);
+                        }}
+                        className="quantity-input-no-spinner w-16 bg-transparent text-center text-sm font-bold text-zinc-50 outline-none"
+                        aria-label={`Quantity for ${item.product.name}`}
+                      />
                       <button 
                         onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.size)}
                         className="text-zinc-400 hover:text-zinc-50 transition-colors"
+                        aria-label="Increase quantity"
                       >
                         <Plus size={16} />
                       </button>
