@@ -111,7 +111,7 @@ export const StoreProvider = ({ children }) => {
   const [cart, setCart] = useState(createInitialCart);
   const [orders, setOrders] = useState(createInitialOrders);
   const [catalog, setCatalog] = useState(createInitialCatalog);
-  const { userProfile, session } = userAuth();
+  const { userProfile, session, authReady } = userAuth();
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -141,7 +141,7 @@ export const StoreProvider = ({ children }) => {
   const archivedProducts = catalog.filter((product) => product.isArchived);
 
   const addToCart = (product) => {
-    if (!session) {
+    if (authReady && !session) {
       return false;
     }
 
@@ -274,6 +274,7 @@ export const StoreProvider = ({ children }) => {
         updateQuantity,
         clearCart,
         cartTotal,
+        authReady,
         catalog,
         activeProducts,
         archivedProducts,

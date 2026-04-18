@@ -100,6 +100,13 @@ export const ProductDetail = () => {
       basePrice: product.price,
       area: product.requiresDimensions ? parseFloat(sqMeter) : 1,
     });
+
+    if (!success) {
+      alert('Please sign in first to add this item to your cart.');
+      navigate('/signin');
+      return;
+    }
+
     if (success) {
       setAdded(true);
       setTimeout(() => setAdded(false), 2000);
