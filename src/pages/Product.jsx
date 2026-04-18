@@ -3,35 +3,30 @@ import { useParams, Link, useNavigate } from 'react-router';
 // eslint-disable-next-line no-unused-vars
 import { motion } from 'motion/react';
 import { useStore } from '../context/StoreContext';
+import { userAuth } from '../auth/AuthContext';
 import { ArrowLeft, Check } from 'lucide-react';
 import { UNIT_TYPES, calculateProductPrice } from '../utils/pricingUtils';
 
 export const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { session } = userAuth();
   const { getProductById } = useStore();
   const product = getProductById(id);
   const { addToCart } = useStore();
   const [added, setAdded] = useState(false);
-  const [selectedSize, setSelectedSize] = useState(product?.sizes?.[0] || '');
-  const [dimensions, setDimensions] = useState({
-    width: product?.dimensions?.width || '',
-    height: product?.dimensions?.height || '',
-    length: product?.dimensions?.length || '',
-  });
-  const [displayPrice, setDisplayPrice] = useState(product?.price || 0);
+  const [width, setWidth] = useState('');
+  const [length, setLength] = useState('');
+  const [selectedVariant, setSelectedVariant] = useState('');
 
   useEffect(() => {
     if (!product) {
       return;
     }
 
-    setSelectedSize(product.sizes?.[0] || '');
-    setDimensions({
-      width: product?.dimensions?.width || '',
-      height: product?.dimensions?.height || '',
-      length: product?.dimensions?.length || '',
-    });
+    setWidth('');
+    setLength('');
+    setSelectedVariant(Array.isArray(product.variants) && product.variants.length > 0 ? product.variants[0] : '');
   }, [product]);
 
   // Recalculate price when dimensions change
@@ -63,8 +58,66 @@ export const ProductDetail = () => {
     );
   }
 
+  const calculateSqMeter = () => {
+    if (width && length) {
+      return (parseFloat(width) * parseFloat(length)).toFixed(2);
+    }
+    return '0';
+  };
+
+  const calculatePrice = () => {
+    if (!product.price) {
+      return '0';
+    }
+
+    if (!product.requiresDimensions) {
+      return Number(product.price).toFixed(2);
+    }
+
+    if (!width || !length) {
+      return '0';
+    }
+
+    const w = parseFloat(width);
+    const h = parseFloat(length);
+    const area = w * h;
+    const price = (area * product.price).toFixed(2);
+    return price;
+  };
+
+  const productMaterials = Array.isArray(product.materials) && product.materials.length > 0
+    ? product.materials
+    : ['Material details unavailable'];
+  const productVariants = Array.isArray(product.variants) && product.variants.length > 0
+    ? product.variants
+    : [];
+
   const handleAdd = () => {
-    const success = addToCart({ ...product, selectedSize, itemPrice: displayPrice });
+    if (!session) {
+      alert('Please sign in first to add this item to your cart.');
+      navigate('/signin');
+      return;
+    }
+
+    if (product.requiresDimensions && (!width || !length)) {
+      alert('Please enter both width and length');
+      return;
+    }
+
+    const sqMeter = calculateSqMeter();
+    const calculatedPrice = parseFloat(calculatePrice());
+    const variantSuffix = selectedVariant ? ` • ${selectedVariant}` : '';
+    const selectedSize = product.requiresDimensions
+      ? `${width}${product.dimensionUnit || 'm'} × ${length}${product.dimensionUnit || 'm'} (${sqMeter} ${product.pricingUnit || 'sq.m'})${variantSuffix}`
+      : `Standard (${product.pricingUnit || 'each'})${variantSuffix}`;
+
+    const success = addToCart({ 
+      ...product, 
+      price: calculatedPrice,
+      selectedSize,
+      basePrice: product.price,
+      area: product.requiresDimensions ? parseFloat(sqMeter) : 1,
+    });
     if (success) {
       setAdded(true);
       setTimeout(() => setAdded(false), 2000);
@@ -104,30 +157,89 @@ export const ProductDetail = () => {
           <h1 className="text-5xl md:text-7xl font-bold tracking-tighter uppercase mb-6">
             {product.name}
           </h1>
-          <p className="text-3xl font-light mb-12">${displayPrice.toFixed(2)}</p>
+          <div className="mb-12">
+            <p className="text-sm text-zinc-400 mb-2">Price per {product.pricingUnit || 'unit'}</p>
+            <p className="text-3xl font-light">₱{product.price}</p>
+            {(product.requiresDimensions ? width && length : true) && (
+              <p className="text-lg text-emerald-400 mt-3">
+                Total: ₱{calculatePrice()}
+              </p>
+            )}
+          </div>
           
-          <p className="text-lg text-zinc-400 font-light leading-relaxed mb-12">
-            {product.description}
-          </p>
+          <div className="mb-12">
+            <p className="text-sm font-semibold uppercase tracking-widest text-zinc-500 mb-3">Description</p>
+            <p className="text-lg text-zinc-400 font-light leading-relaxed">
+              {product.description}
+            </p>
+          </div>
 
-          <div className="mb-8">
-            <p className="text-sm font-semibold uppercase tracking-widest text-zinc-500 mb-4">Size</p>
-            <div className="flex flex-wrap gap-3">
-              {product.sizes?.map((size) => (
-                <button
-                  key={size}
-                  type="button"
-                  onClick={() => setSelectedSize(size)}
-                  className={`rounded-full border px-4 py-2 text-sm font-semibold uppercase tracking-widest transition-colors ${
-                    selectedSize === size
-                      ? 'border-emerald-400 bg-emerald-400 text-zinc-950'
-                      : 'border-zinc-800 text-zinc-300 hover:border-zinc-500 hover:text-zinc-50'
-                  }`}
-                >
-                  {size}
-                </button>
-              ))}
+          {productVariants.length > 0 && (
+            <div className="mb-12">
+              <p className="text-sm font-semibold uppercase tracking-widest text-zinc-500 mb-3">Variants</p>
+              <div className="flex flex-wrap gap-2">
+                {productVariants.map((variant) => (
+                  <button
+                    key={variant}
+                    type="button"
+                    onClick={() => setSelectedVariant(variant)}
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-widest transition-colors ${
+                      selectedVariant === variant
+                        ? 'border-emerald-400 bg-emerald-400 text-zinc-950'
+                        : 'border-white/15 bg-white/5 text-zinc-200 hover:border-emerald-300'
+                    }`}
+                  >
+                    {variant}
+                  </button>
+                ))}
+              </div>
             </div>
+          )}
+
+          <div className="mb-8 space-y-4">
+            <p className="text-sm font-semibold uppercase tracking-widest text-zinc-500">Custom Size</p>
+            {product.requiresDimensions ? (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="block text-xs font-medium text-zinc-400">Width ({product.dimensionUnit || 'm'})</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={width}
+                      onChange={(e) => setWidth(e.target.value)}
+                      placeholder="e.g. 2"
+                      className="quantity-input-no-spinner w-full rounded-2xl border border-zinc-800 bg-white/5 px-4 py-3 text-zinc-50 placeholder:text-zinc-600 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-xs font-medium text-zinc-400">Height ({product.dimensionUnit || 'm'})</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={length}
+                      onChange={(e) => setLength(e.target.value)}
+                      placeholder="e.g. 3"
+                      className="quantity-input-no-spinner w-full rounded-2xl border border-zinc-800 bg-white/5 px-4 py-3 text-zinc-50 placeholder:text-zinc-600 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20"
+                    />
+                  </div>
+                </div>
+                {width && length && (
+                  <div className="rounded-2xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3">
+                    <p className="text-xs text-zinc-400 mb-2">Area: {width} × {length} = {calculateSqMeter()} {product.pricingUnit || 'sq.m'}</p>
+                    <p className="text-sm font-semibold text-emerald-300">
+                      {width}{product.dimensionUnit || 'm'} × {length}{product.dimensionUnit || 'm'}
+                    </p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="rounded-2xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3">
+                <p className="text-sm font-semibold text-emerald-300">Fixed pricing item (no size input needed).</p>
+              </div>
+            )}
           </div>
 
           {/* Dynamic Pricing Section - Conditional Dimension Inputs */}
@@ -210,15 +322,32 @@ export const ProductDetail = () => {
             </Link>
           </div>
 
-          {/* Dummy specs */}
+          {/* Product specs */}
           <div className="mt-16 pt-12 border-t border-zinc-900 grid grid-cols-2 gap-8 text-sm uppercase tracking-widest text-zinc-500">
             <div>
               <p className="text-zinc-50 mb-2 font-bold">Materials</p>
-              <p>Machined Aluminum<br/>Matte Finish</p>
+              <p>
+                {productMaterials.map((material, index) => (
+                  <span key={`${material}-${index}`}>
+                    {material}
+                    <br />
+                  </span>
+                ))}
+              </p>
             </div>
             <div>
               <p className="text-zinc-50 mb-2 font-bold">Dimensions</p>
-              <p>H: 45cm<br/>W: 20cm<br/>D: 20cm</p>
+              {width && length ? (
+                <p>
+                  W: {width}{product.dimensionUnit || 'm'}
+                  <br />
+                  H: {length}{product.dimensionUnit || 'm'}
+                  <br />
+                  AREA: {calculateSqMeter()} {product.pricingUnit || 'SQ.M'}
+                </p>
+              ) : (
+                <p>{product.requiresDimensions ? 'Set width and height' : `Standard (${product.pricingUnit || 'each'})`}</p>
+              )}
             </div>
           </div>
         </motion.div>

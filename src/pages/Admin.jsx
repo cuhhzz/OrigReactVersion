@@ -17,7 +17,7 @@ export default function Admin() {
     name: '',
     price: '',
     image: '',
-    sizes: '',
+    sizes: [],
     description: '',
   });
   const [productMessage, setProductMessage] = useState('');
@@ -54,11 +54,19 @@ export default function Admin() {
       return;
     }
 
+    const sizes = Array.isArray(product.sizes)
+      ? product.sizes.map((s) => ({
+          width: typeof s === 'object' ? s.width || '' : '',
+          length: typeof s === 'object' ? s.length || '' : '',
+          sqrMeter: typeof s === 'object' ? s.sqrMeter || '' : '',
+        }))
+      : [];
+
     setProductForm({
       name: product.name || '',
       price: String(product.price ?? ''),
       image: product.image || '',
-      sizes: Array.isArray(product.sizes) ? product.sizes.join(', ') : '',
+      sizes,
       description: product.description || '',
     });
   }, [activeProducts, selectedProductId]);
@@ -138,11 +146,10 @@ export default function Admin() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setProductForm((current) => ({ ...current, image: String(reader.result || '') }));
-    };
-    reader.readAsDataURL(file);
+    const imagePath = `/productImage/${file.name}`;
+    setProductForm((current) => ({ ...current, image: imagePath }));
+    setProductMessage(`Image path set to ${imagePath}. Make sure the file exists in public/productImage.`);
+    window.setTimeout(() => setProductMessage(''), 4000);
   };
 
   const handleSaveProduct = (event) => {
@@ -155,7 +162,7 @@ export default function Admin() {
     updateProduct(selectedProductId, {
       ...productForm,
       price: Number(productForm.price) || 0,
-      sizes: productForm.sizes,
+      sizes: productForm.sizes.filter((s) => s.width && s.length && s.sqrMeter),
     });
     setProductMessage('Product updated successfully.');
     window.setTimeout(() => setProductMessage(''), 2500);
@@ -728,32 +735,163 @@ export default function Admin() {
                   </div>
                 </div>
 
-                <div className="rounded-4xl border border-white/10 bg-slate-950/80 p-6 md:p-8">
-                  <div className="flex items-center justify-between gap-4 mb-6">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.35em] text-emerald-400">Dynamic pricing</p>
-                      <h2 className="mt-2 text-2xl font-black uppercase tracking-tight">Configure prices & dimensions</h2>
-                    </div>
-                    <DollarSign size={20} className="text-emerald-300" />
+              {activeProducts.length === 0 ? (
+                <div className="rounded-3xl border border-dashed border-white/10 p-8 text-center text-zinc-500">
+                  No active products available to edit.
+                </div>
+              ) : (
+                <form onSubmit={handleSaveProduct} className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <label className="space-y-2 text-sm text-zinc-300">
+                      <span>Choose product</span>
+                      <select
+                        value={selectedProductId}
+                        onChange={(event) => setSelectedProductId(event.target.value)}
+                        className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-zinc-50 outline-none focus:border-emerald-400"
+                      >
+                        {activeProducts.map((product) => (
+                          <option key={product.id} value={product.id} className="bg-slate-950 text-zinc-50">
+                            {product.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="space-y-2 text-sm text-zinc-300">
+                      <span>Price / rate</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={productForm.price}
+                        onChange={(event) => setProductForm((current) => ({ ...current, price: event.target.value }))}
+                        className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-zinc-50 outline-none focus:border-emerald-400"
+                      />
+                    </label>
                   </div>
 
-                  {activeProducts.length === 0 ? (
-                    <div className="rounded-3xl border border-dashed border-white/10 p-8 text-center text-zinc-500">
-                      No active products available to configure.
+                  <label className="space-y-2 text-sm text-zinc-300 block">
+                    <span>Image URL or upload</span>
+                    <input
+                      type="url"
+                      value={productForm.image}
+                      onChange={(event) => setProductForm((current) => ({ ...current, image: event.target.value }))}
+                      className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-zinc-50 outline-none focus:border-emerald-400"
+                      placeholder="https://..."
+                    />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleProductUpload}
+                      className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-zinc-400 file:mr-4 file:rounded-full file:border-0 file:bg-emerald-400 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-slate-950"
+                    />
+                  </label>
+
+                  <label className="space-y-2 text-sm text-zinc-300 block">
+                    <div className="flex items-center justify-between">
+                      <span>Sizes (Width × Length × Sq.M)</span>
+                      <button
+                        type="button"
+                        onClick={() => setProductForm((current) => ({
+                          ...current,
+                          sizes: [...current.sizes, { width: '', length: '', sqrMeter: '' }],
+                        }))}
+                        className="rounded-full bg-emerald-400/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-300 hover:bg-emerald-400/30"
+                      >
+                        Add size
+                      </button>
                     </div>
-                  ) : (
-                    <>
-                      <p className="text-sm text-zinc-400 mb-4">Select a product above, then configure its pricing and unit type below.</p>
-                      {selectedProductId && (
-                        <PricingForm
-                          product={activeProducts.find((p) => p.id === selectedProductId)}
-                          onSave={handleSavePricing}
-                          isLoading={savingPricing}
-                        />
+                    <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
+                      {productForm.sizes.length === 0 ? (
+                        <p className="text-xs text-zinc-500 p-3 border border-dashed border-white/10 rounded-xl">
+                          No sizes added. Click "Add size" to create dimensions.
+                        </p>
+                      ) : (
+                        productForm.sizes.map((size, index) => (
+                          <div key={index} className="flex gap-2 items-end">
+                            <input
+                              type="number"
+                              step="0.1"
+                              min="0"
+                              placeholder="Width (m)"
+                              value={size.width}
+                              onChange={(event) => {
+                                const newSizes = [...productForm.sizes];
+                                newSizes[index].width = Number(event.target.value) || '';
+                                setProductForm((current) => ({ ...current, sizes: newSizes }));
+                              }}
+                              className="flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-zinc-50 outline-none focus:border-emerald-400"
+                            />
+                            <span className="text-zinc-500">×</span>
+                            <input
+                              type="number"
+                              step="0.1"
+                              min="0"
+                              placeholder="Length (m)"
+                              value={size.length}
+                              onChange={(event) => {
+                                const newSizes = [...productForm.sizes];
+                                newSizes[index].length = Number(event.target.value) || '';
+                                setProductForm((current) => ({ ...current, sizes: newSizes }));
+                              }}
+                              className="flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-zinc-50 outline-none focus:border-emerald-400"
+                            />
+                            <span className="text-zinc-500">=</span>
+                            <input
+                              type="number"
+                              step="0.1"
+                              min="0"
+                              placeholder="Sq.M"
+                              value={size.sqrMeter}
+                              onChange={(event) => {
+                                const newSizes = [...productForm.sizes];
+                                newSizes[index].sqrMeter = Number(event.target.value) || '';
+                                setProductForm((current) => ({ ...current, sizes: newSizes }));
+                              }}
+                              className="flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-zinc-50 outline-none focus:border-emerald-400"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newSizes = productForm.sizes.filter((_, i) => i !== index);
+                                setProductForm((current) => ({ ...current, sizes: newSizes }));
+                              }}
+                              className="rounded-lg bg-red-400/20 px-2 py-2 text-xs font-semibold text-red-300 hover:bg-red-400/30"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))
                       )}
-                    </>
-                  )}
-                </div>
+                    </div>
+                  </label>
+
+                  <label className="space-y-2 text-sm text-zinc-300 block">
+                    <span>Description</span>
+                    <textarea
+                      rows="4"
+                      value={productForm.description}
+                      onChange={(event) => setProductForm((current) => ({ ...current, description: event.target.value }))}
+                      className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-zinc-50 outline-none focus:border-emerald-400"
+                    />
+                  </label>
+
+                  <button
+                    type="submit"
+                    className="rounded-2xl bg-emerald-400 px-5 py-3 text-sm font-bold uppercase tracking-[0.25em] text-slate-950 hover:bg-emerald-300"
+                  >
+                    Save Product
+                  </button>
+
+                  {productMessage && <p className="text-sm text-emerald-300">{productMessage}</p>}
+                </form>
+              )}
+            </div>
+
+            <div className="rounded-4xl border border-white/10 bg-slate-950/80 p-6 md:p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <BarChart3 size={20} className="text-emerald-300" />
+                <h2 className="text-2xl font-black uppercase tracking-tight">Analytics</h2>
               </div>
             )}
 
