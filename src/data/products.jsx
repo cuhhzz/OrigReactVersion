@@ -55,14 +55,14 @@ export const PRODUCTS = [
     pricingUnit: "sq.in",
     dimensionUnit: "in",
     requiresDimensions: true,
-    image: "/productImage/stikcerOnSintra.jpg",
+    image: "/productImage/stickerOnSintra.jpg",
     category: "Board Print",
     materials: ["SINTRA BOARD", "VINYL STICKER"],
     description: "Rigid board signage with mounted sticker print."
   },
   {
     id: "p6",
-    name: "Magnet Sticker 1mm",
+    name: "Magnet Sticker",
     price: 2.5,
     pricingUnit: "sq.in",
     dimensionUnit: "in",
@@ -128,7 +128,7 @@ export const PRODUCTS = [
     pricingUnit: "300 pcs",
     dimensionUnit: "",
     requiresDimensions: false,
-    image: "/images/background.jpg",
+    image: "/productImage/businessCard.jpg",
     category: "Business Print",
     materials: ["CARD STOCK"],
     description: "Standard calling card package (300 pcs)."
