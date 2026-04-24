@@ -26,6 +26,14 @@ export const Layout = () => {
           Originals Printing Co.
         </Link>
         
+        {/* <Link to="/" className="pointer-events-auto" aria-label="Originals Printing Co. Home">
+          <img
+            src="/images/logo.png"
+            alt="Originals Printing Co."
+            className="h-8 w-auto md:h-10"
+          />
+        </Link> */}
+        
         <div className="hidden md:flex items-center gap-8 text-sm font-medium tracking-wide pointer-events-auto">
           <Link to="/shop" className="hover:text-emerald-400 transition-colors">SHOP</Link>
           <Link to="/tracking" className="hover:text-emerald-400 transition-colors">TRACKING</Link>

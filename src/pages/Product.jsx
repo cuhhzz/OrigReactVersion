@@ -5,7 +5,6 @@ import { motion } from 'motion/react';
 import { useStore } from '../context/StoreContext';
 import { userAuth } from '../auth/AuthContext';
 import { ArrowLeft, Check } from 'lucide-react';
-import { UNIT_TYPES, calculateProductPrice } from '../utils/pricingUtils';
 
 export const ProductDetail = () => {
   const { id } = useParams();
@@ -17,8 +16,7 @@ export const ProductDetail = () => {
   const [added, setAdded] = useState(false);
   const [width, setWidth] = useState('');
   const [length, setLength] = useState('');
-  const [dimensions, setDimensions] = useState({ width: '', height: '', length: '' });
-  const [displayPrice, setDisplayPrice] = useState(product?.price || 0);
+  const [quantity, setQuantity] = useState(1);
   const [selectedVariant, setSelectedVariant] = useState('');
 
   useEffect(() => {
@@ -28,25 +26,9 @@ export const ProductDetail = () => {
 
     setWidth('');
     setLength('');
+    setQuantity(1);
     setSelectedVariant(Array.isArray(product.variants) && product.variants.length > 0 ? product.variants[0] : '');
   }, [product]);
-
-  // Recalculate price when dimensions change
-  useEffect(() => {
-    if (!product) return;
-
-    if (product.unitType && product.unitType !== UNIT_TYPES.FIXED && product.pricePerUnit) {
-      const result = calculateProductPrice(
-        product.unitType,
-        product.pricePerUnit,
-        dimensions,
-        1
-      );
-      setDisplayPrice(result.total);
-    } else {
-      setDisplayPrice(product?.price || 0);
-    }
-  }, [dimensions, product]);
 
   if (!product) {
     return (
@@ -106,6 +88,11 @@ export const ProductDetail = () => {
       return;
     }
 
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      alert('Please enter a valid quantity.');
+      return;
+    }
+
     const sqMeter = calculateSqMeter();
     const calculatedPrice = parseFloat(calculatePrice());
     const variantSuffix = selectedVariant ? ` • ${selectedVariant}` : '';
@@ -116,10 +103,18 @@ export const ProductDetail = () => {
     const success = addToCart({ 
       ...product, 
       price: calculatedPrice,
+      orderQuantity: quantity,
       selectedSize,
       basePrice: product.price,
       area: product.requiresDimensions ? parseFloat(sqMeter) : 1,
     });
+
+    if (!success) {
+      alert('Please sign in first to add this item to your cart.');
+      navigate('/signin');
+      return;
+    }
+
     if (success) {
       setAdded(true);
       setTimeout(() => setAdded(false), 2000);
@@ -164,7 +159,7 @@ export const ProductDetail = () => {
             <p className="text-3xl font-light">₱{product.price}</p>
             {(product.requiresDimensions ? width && length : true) && (
               <p className="text-lg text-emerald-400 mt-3">
-                Total: ₱{calculatePrice()}
+                Total: ₱{(parseFloat(calculatePrice()) * quantity).toFixed(2)}
               </p>
             )}
           </div>
@@ -244,58 +239,25 @@ export const ProductDetail = () => {
             )}
           </div>
 
-          {/* Dynamic Pricing Section - Conditional Dimension Inputs */}
-          {product.unitType && product.unitType !== UNIT_TYPES.FIXED && (
-            <div className="mb-8">
-              <p className="text-sm font-semibold uppercase tracking-widest text-zinc-500 mb-4">Custom Dimensions</p>
-              {(product.unitType === UNIT_TYPES.SQ_FT || product.unitType === UNIT_TYPES.SQ_INCH) && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs text-zinc-400 mb-2">
-                      Width ({product.unitType === UNIT_TYPES.SQ_FT ? 'Feet' : 'Inches'})
-                    </label>
-                    <input
-                      type="number"
-                      value={dimensions.width}
-                      onChange={(e) => setDimensions({ ...dimensions, width: parseFloat(e.target.value) || '' })}
-                      placeholder="0"
-                      step="0.01"
-                      min="0"
-                      className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-zinc-50 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-zinc-400 mb-2">
-                      Height ({product.unitType === UNIT_TYPES.SQ_FT ? 'Feet' : 'Inches'})
-                    </label>
-                    <input
-                      type="number"
-                      value={dimensions.height}
-                      onChange={(e) => setDimensions({ ...dimensions, height: parseFloat(e.target.value) || '' })}
-                      placeholder="0"
-                      step="0.01"
-                      min="0"
-                      className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-zinc-50 text-sm"
-                    />
-                  </div>
-                </div>
-              )}
-              {product.unitType === UNIT_TYPES.LINEAR_METER && (
-                <div>
-                  <label className="block text-xs text-zinc-400 mb-2">Length (Meters)</label>
-                  <input
-                    type="number"
-                    value={dimensions.length}
-                    onChange={(e) => setDimensions({ ...dimensions, length: parseFloat(e.target.value) || '' })}
-                    placeholder="0"
-                    step="0.01"
-                    min="0"
-                    className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-zinc-50 text-sm"
-                  />
-                </div>
-              )}
-            </div>
-          )}
+          <div className="mb-8 space-y-2">
+            <label className="block text-sm font-semibold uppercase tracking-widest text-zinc-500">Quantity Per Order</label>
+            <input
+              type="number"
+              min="1"
+              step="1"
+              inputMode="numeric"
+              value={quantity}
+              onChange={(e) => {
+                const parsed = Number.parseInt(e.target.value, 10);
+                if (Number.isNaN(parsed)) {
+                  setQuantity(1);
+                  return;
+                }
+                setQuantity(Math.max(1, parsed));
+              }}
+              className="quantity-input-no-spinner w-full rounded-2xl border border-zinc-800 bg-white/5 px-4 py-3 text-zinc-50 placeholder:text-zinc-600 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20"
+            />
+          </div>
 
           <div className="space-y-6">
             <button 

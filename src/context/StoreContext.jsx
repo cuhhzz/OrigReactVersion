@@ -117,7 +117,7 @@ export const StoreProvider = ({ children }) => {
   const [cart, setCart] = useState(createInitialCart);
   const [orders, setOrders] = useState(createInitialOrders);
   const [catalog, setCatalog] = useState(createInitialCatalog);
-  const { userProfile, session } = userAuth();
+  const { userProfile, session, authReady } = userAuth();
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -147,20 +147,24 @@ export const StoreProvider = ({ children }) => {
   const archivedProducts = catalog.filter((product) => product.isArchived);
 
   const addToCart = (product) => {
-    if (!session) {
+    if (authReady && !session) {
       return false;
     }
+
+    const incomingQuantity = Number.isFinite(product.orderQuantity)
+      ? Math.max(1, Math.floor(product.orderQuantity))
+      : 1;
 
     setCart((prev) => {
       const existing = prev.find((item) => getCartItemKey(item.product.id, item.size) === getCartItemKey(product.id, product.selectedSize));
       if (existing) {
         return prev.map((item) =>
           getCartItemKey(item.product.id, item.size) === getCartItemKey(product.id, product.selectedSize)
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { ...item, quantity: item.quantity + incomingQuantity }
             : item
         );
       }
-      return [...prev, { product, quantity: 1, size: product.selectedSize || product.size || product.variantSize || '', itemPrice: product.itemPrice || product.price }];
+      return [...prev, { product, quantity: incomingQuantity, size: product.selectedSize || product.size || product.variantSize || '', itemPrice: product.itemPrice || product.price }];
     });
     return true;
   };
@@ -291,6 +295,7 @@ export const StoreProvider = ({ children }) => {
         updateCartItemLayout,
         clearCart,
         cartTotal,
+        authReady,
         catalog,
         activeProducts,
         archivedProducts,
