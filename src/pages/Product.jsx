@@ -17,6 +17,8 @@ export const ProductDetail = () => {
   const [added, setAdded] = useState(false);
   const [width, setWidth] = useState('');
   const [length, setLength] = useState('');
+  const [dimensions, setDimensions] = useState({ width: '', height: '', length: '' });
+  const [displayPrice, setDisplayPrice] = useState(product?.price || 0);
   const [selectedVariant, setSelectedVariant] = useState('');
 
   useEffect(() => {
