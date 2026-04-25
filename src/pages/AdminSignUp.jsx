@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { userAuth } from "../auth/AuthContext";
+import { useUserAuth } from "../auth/AuthContext";
 
 const passwordChecks = (password) => ({
   minLength: password.length >= 8,
@@ -25,7 +25,7 @@ const AdminSignUp = () => {
     signUpNewUser,
     setUserRole,
     isConfiguredAdminEmail,
-  } = userAuth();
+  } = useUserAuth();
 
   const navigate = useNavigate();
 

@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
 import { createContext, useEffect, useState, useContext } from "react";
 import { app } from "../config/FirebaseConfig";
 import {

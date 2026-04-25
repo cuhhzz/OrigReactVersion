@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { Outlet, Link, useNavigate } from 'react-router';
 import { Menu, X } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
-import { userAuth } from '../auth/AuthContext';
+import { useUserAuth } from '../auth/AuthContext';
 
 export const Layout = () => {
   const { cart } = useStore();
-  const { isAdmin, session, signOut } = userAuth();
+  const { isAdmin, session, signOut } = useUserAuth();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 

@@ -1,6 +1,6 @@
 ﻿import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { userAuth } from "../auth/AuthContext";
+import { useUserAuth } from "../auth/AuthContext";
 
 const SignIn = () => {
     const [email, setEmail] = useState("");
@@ -11,7 +11,7 @@ const SignIn = () => {
     const [errorCode, setErrorCode] = useState("");
     const [loading, setLoading] = useState(false);
 
-    const {session, userProfile, authReady, signInUser, signUpNewUser, checkEmailVerification, isConfiguredAdminEmail} = userAuth();
+    const {session, userProfile, authReady, signInUser, signUpNewUser, checkEmailVerification, isConfiguredAdminEmail} = useUserAuth();
     const navigate =  useNavigate();
 
     const handleSignIn = async (e) => {

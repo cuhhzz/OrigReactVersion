@@ -3,13 +3,13 @@ import { useParams, Link, useNavigate } from 'react-router';
 // eslint-disable-next-line no-unused-vars
 import { motion } from 'motion/react';
 import { useStore } from '../context/StoreContext';
-import { userAuth } from '../auth/AuthContext';
+import { useUserAuth } from '../auth/AuthContext';
 import { ArrowLeft, Check } from 'lucide-react';
 
 export const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { session } = userAuth();
+  const { session } = useUserAuth();
   const { getProductById } = useStore();
   const product = getProductById(id);
   const { addToCart } = useStore();

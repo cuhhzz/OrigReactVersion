@@ -1,6 +1,6 @@
 ﻿import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { userAuth } from "../auth/AuthContext";
+import { useUserAuth } from "../auth/AuthContext";
 import { doc, getFirestore, setDoc } from "firebase/firestore";
 import { app } from "../config/FirebaseConfig";
 import { useEffect } from "react";
@@ -15,7 +15,7 @@ const SignUp = () => {
     const [successMessage, setSuccessMessage] = useState("");
     const [loading, setLoading] = useState(false);
 
-    const {session, userProfile, authReady, signUpNewUser, isConfiguredAdminEmail} = userAuth();
+    const {session, userProfile, authReady, signUpNewUser, isConfiguredAdminEmail} = useUserAuth();
     const db = getFirestore(app);
     const navigate =  useNavigate();
 
