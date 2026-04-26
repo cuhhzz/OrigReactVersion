@@ -16,12 +16,10 @@ export const Checkout = () => {
   const [paymentReference, setPaymentReference] = useState('');
   const [paymentStatus, setPaymentStatus] = useState('idle');
   const [paymentMessage, setPaymentMessage] = useState('');
-  const [autoPlacingStarted, setAutoPlacingStarted] = useState(false);
   const [creatingSession, setCreatingSession] = useState(false);
   const [paymentQrUrl, setPaymentQrUrl] = useState('');
   const [paymentCheckoutUrl, setPaymentCheckoutUrl] = useState('');
   const [paymentConfigHint, setPaymentConfigHint] = useState('');
-  const [paymentDebugData, setPaymentDebugData] = useState(null);
   const [contactEmail, setContactEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -73,12 +71,6 @@ export const Checkout = () => {
     setPaymentConfigHint('');
     setPaymentStatus('creating');
     setPaymentMessage('Creating PayMongo payment session...');
-    setPaymentDebugData({
-      request: requestBody,
-      response: null,
-      status: null,
-      updatedAt: new Date().toISOString(),
-    });
 
     try {
       const response = await fetch('/api/payments/session', {
@@ -105,22 +97,20 @@ export const Checkout = () => {
       setPaymentReference(data.reference || generatedReference);
       setPaymentQrUrl(data.qrImageUrl || '');
       setPaymentCheckoutUrl(data.checkoutUrl || '');
+
+      if (data.paymongoKeyMode === 'test') {
+        setPaymentConfirmed(true);
+        setPaymentStatus('paid');
+        setPaymentMessage('Test mode detected. QR generated and payment auto-confirmed for checkout flow.');
+        setPaymentError('');
+        return;
+      }
+
       setPaymentStatus('waiting');
       setPaymentMessage('Payment session ready. Scan QR with GCash or open PayMongo checkout.');
-      setPaymentDebugData((current) => ({
-        ...(current || {}),
-        response: data,
-        status: response.status,
-        updatedAt: new Date().toISOString(),
-      }));
     } catch (error) {
       setPaymentStatus('failed');
       setPaymentMessage('');
-      setPaymentDebugData((current) => ({
-        ...(current || {}),
-        error: error?.message || 'Failed to create PayMongo payment session.',
-        updatedAt: new Date().toISOString(),
-      }));
       if (error instanceof TypeError) {
         setPaymentError('Payment API is unreachable. Start it with: npm run api');
       } else {
@@ -141,7 +131,7 @@ export const Checkout = () => {
     }
 
     if (!paymentConfirmed) {
-      setPaymentError('Waiting for payment confirmation from the system.');
+      setPaymentError('Click Payment Confirmed to place the order.');
       return;
     }
   };
@@ -157,13 +147,6 @@ export const Checkout = () => {
       try {
         const response = await fetch(`/api/payments/status/${paymentReference}`);
         const data = await parseApiJson(response);
-
-        setPaymentDebugData((current) => ({
-          ...(current || {}),
-          lastStatusResponse: data,
-          lastStatusHttpStatus: response.status,
-          updatedAt: new Date().toISOString(),
-        }));
 
         if (!response.ok) {
           if (!cancelled && response.status === 404) {
@@ -212,24 +195,24 @@ export const Checkout = () => {
     };
   }, [shippingSubmitted, paymentConfirmed, paymentReference]);
 
-  useEffect(() => {
-    if (!shippingSubmitted || !paymentConfirmed || processing || completed || autoPlacingStarted) {
+  const handlePaymentConfirmed = () => {
+    if (!paymentConfirmed || processing || completed) {
       return;
     }
 
-    setAutoPlacingStarted(true);
     setProcessing(true);
-    const timeout = setTimeout(() => {
+    try {
       const id = placeOrder();
       setOrderId(id);
-      setProcessing(false);
       setCompleted(true);
-    }, 1200);
-
-    return () => {
-      clearTimeout(timeout);
-    };
-  }, [shippingSubmitted, paymentConfirmed, processing, completed, autoPlacingStarted, placeOrder]);
+      setPaymentError('');
+      setPaymentMessage('Order placed successfully.');
+    } catch {
+      setPaymentError('Unable to complete checkout. Please try again.');
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   const handleRedirectToGcash = () => {
     const targetUrl = paymentCheckoutUrl || paymentQrUrl;
@@ -333,13 +316,18 @@ export const Checkout = () => {
                 </div>
                 <p className="text-xs text-zinc-400 text-center">Ref: {paymentReference || 'Pending'} • Amount: ₱{cartTotal.toFixed(2)}</p>
 
-                <div className="w-full py-3 border border-zinc-700 text-zinc-300 font-semibold uppercase tracking-widest text-center">
+                <button
+                  type="button"
+                  onClick={handlePaymentConfirmed}
+                  disabled={!paymentConfirmed || processing || completed}
+                  className="w-full py-3 border border-zinc-700 font-bold uppercase tracking-widest text-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-zinc-50 text-zinc-950 hover:bg-emerald-400"
+                >
                   {paymentStatus === 'creating' && 'Creating Payment Session'}
                   {paymentStatus === 'verifying' && 'Checking Payment'}
                   {paymentStatus === 'paid' && 'Payment Confirmed'}
                   {paymentStatus === 'expired' && 'Payment Session Expired'}
                   {(paymentStatus === 'waiting' || paymentStatus === 'idle' || paymentStatus === 'failed') && 'Awaiting Payment Confirmation'}
-                </div>
+                </button>
 
                 <button
                   type="button"
@@ -358,38 +346,6 @@ export const Checkout = () => {
 
               {paymentError && <p className="text-sm text-red-400">{paymentError}</p>}
               {paymentConfigHint && <p className="text-xs text-amber-400">{paymentConfigHint}</p>}
-
-              {paymentDebugData && (
-                <details className="border border-zinc-800 bg-zinc-950/80 p-4 text-xs text-zinc-300">
-                  <summary className="cursor-pointer select-none font-semibold uppercase tracking-widest text-emerald-400">
-                    Debug Panel
-                  </summary>
-                  <div className="mt-4 space-y-4">
-                    <div>
-                      <p className="mb-2 text-zinc-500 uppercase tracking-widest">Request sent to API</p>
-                      <pre className="overflow-auto whitespace-pre-wrap wrap-break-word rounded bg-zinc-900 p-3 text-[11px] leading-5 text-zinc-200">
-                        {JSON.stringify(paymentDebugData.request || {}, null, 2)}
-                      </pre>
-                    </div>
-                    <div>
-                      <p className="mb-2 text-zinc-500 uppercase tracking-widest">Latest API response</p>
-                      <pre className="overflow-auto whitespace-pre-wrap wrap-break-word rounded bg-zinc-900 p-3 text-[11px] leading-5 text-zinc-200">
-                        {JSON.stringify(
-                          {
-                            response: paymentDebugData.response || null,
-                            lastStatusResponse: paymentDebugData.lastStatusResponse || null,
-                            error: paymentDebugData.error || null,
-                            statusCode: paymentDebugData.status || paymentDebugData.lastStatusHttpStatus || null,
-                            updatedAt: paymentDebugData.updatedAt || null,
-                          },
-                          null,
-                          2
-                        )}
-                      </pre>
-                    </div>
-                  </div>
-                </details>
-              )}
             </div>
           )}
 
