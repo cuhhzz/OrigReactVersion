@@ -100,7 +100,7 @@ export const Checkout = () => {
                 Processing...
               </>
             ) : (
-              `Pay $${cartTotal.toFixed(2)}`
+              `Pay ₱${cartTotal.toFixed(2)}`
             )}
           </button>
         </form>
@@ -118,7 +118,7 @@ export const Checkout = () => {
                 <div className="grow flex flex-col justify-center">
                   <div className="flex justify-between items-start">
                     <h3 className="font-bold text-sm uppercase tracking-wider">{item.product.name}</h3>
-                    <p className="font-medium">${(item.itemPrice || item.product.price) * item.quantity}</p>
+                    <p className="font-medium">₱{((item.itemPrice || item.product.price) * item.quantity).toFixed(2)}</p>
                   </div>
                   <p className="text-zinc-500 text-xs mt-1">Qty: {item.quantity} • Size: {item.size || 'One size'}</p>
                 </div>
@@ -139,7 +139,7 @@ export const Checkout = () => {
         </div>
         <div className="pt-6 border-t border-zinc-800 flex justify-between items-center text-xl font-bold">
           <span className="uppercase tracking-widest">Total</span>
-          <span className="text-emerald-400">${cartTotal.toFixed(2)}</span>
+          <span className="text-emerald-400">₱{cartTotal.toFixed(2)}</span>
         </div>
       </div>
     </div>
