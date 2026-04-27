@@ -3,12 +3,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { ArchiveRestore, BarChart3, ShieldCheck, ShoppingBag, Users, UserRoundCog, Upload, DollarSign, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { userAuth } from '../auth/AuthContext';
+import { useUserAuth } from '../auth/AuthContext';
 import { useStore } from '../context/StoreContext';
 import PricingForm from '../components/admin/PricingForm';
 
 export default function Admin() {
-  const { session, userProfile, users, signOut, suspendUser, deleteUser, restoreUser, setUserRole } = userAuth();
+  const { session, userProfile, users, signOut, suspendUser, deleteUser, restoreUser, setUserRole } = useUserAuth();
   const { activeProducts, archivedProducts, archiveProduct, restoreProduct, updateProduct, addProduct, orders } = useStore();
   const [busyUserId, setBusyUserId] = useState('');
   const [busyProductId, setBusyProductId] = useState('');

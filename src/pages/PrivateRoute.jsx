@@ -1,9 +1,9 @@
 import React from "react";
-import { userAuth } from "../auth/AuthContext";
+import { useUserAuth } from "../auth/AuthContext";
 import { Navigate } from "react-router-dom";
 
 const PrivateRoute = ({ children, requireNonAdmin = false }) => {
-    const { session, authReady, isAdmin } = userAuth();
+    const { session, authReady, isAdmin } = useUserAuth();
 
     if (!authReady) {
         return null;

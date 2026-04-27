@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useEffect, useState, useContext } from 'react';
 import { PRODUCTS } from '../data/products';
-import { userAuth } from '../auth/AuthContext';
+import { useUserAuth } from '../auth/AuthContext';
 
 const StoreContext = createContext(undefined);
 
@@ -117,7 +117,7 @@ export const StoreProvider = ({ children }) => {
   const [cart, setCart] = useState(createInitialCart);
   const [orders, setOrders] = useState(createInitialOrders);
   const [catalog, setCatalog] = useState(createInitialCatalog);
-  const { userProfile, session, authReady } = userAuth();
+  const { userProfile, session, authReady } = useUserAuth();
 
   useEffect(() => {
     if (typeof window === 'undefined') {

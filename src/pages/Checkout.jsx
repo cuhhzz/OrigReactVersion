@@ -1,9 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
-// eslint-disable-next-line no-unused-vars
 import { motion } from 'motion/react';
 import { useStore } from '../context/StoreContext';
-import { CheckCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, Loader2, Smartphone } from 'lucide-react';
 
 export const Checkout = () => {
   const { cart, cartTotal, placeOrder } = useStore();
@@ -11,24 +10,231 @@ export const Checkout = () => {
   const [processing, setProcessing] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [orderId, setOrderId] = useState('');
+  const [shippingSubmitted, setShippingSubmitted] = useState(false);
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const [paymentError, setPaymentError] = useState('');
+  const [paymentReference, setPaymentReference] = useState('');
+  const [paymentStatus, setPaymentStatus] = useState('idle');
+  const [paymentMessage, setPaymentMessage] = useState('');
+  const [creatingSession, setCreatingSession] = useState(false);
+  const [paymentQrUrl, setPaymentQrUrl] = useState('');
+  const [paymentCheckoutUrl, setPaymentCheckoutUrl] = useState('');
+  const [paymentConfigHint, setPaymentConfigHint] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [addressLine, setAddressLine] = useState('');
+  const [city, setCity] = useState('');
+  const [stateProvince, setStateProvince] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const shouldRedirectToCart = cart.length === 0 && !completed;
 
-  if (cart.length === 0 && !completed) {
-    navigate('/cart');
-    return null;
-  }
+  useEffect(() => {
+    if (shouldRedirectToCart) {
+      navigate('/cart');
+    }
+  }, [shouldRedirectToCart, navigate]);
 
-  const handleCheckout = (e) => {
+  const parseApiJson = async (response) => {
+    const text = await response.text();
+    if (!text) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      return null;
+    }
+  };
+
+  const createPaymentSession = async () => {
+    const generatedReference = `ORIG-${Math.random().toString(36).slice(2, 9).toUpperCase()}`;
+    const requestBody = {
+      reference: generatedReference,
+      amount: cartTotal,
+      description: `Originals Printing order ${generatedReference}`,
+      customerEmail: contactEmail,
+      customerName: `${firstName} ${lastName}`.trim(),
+      customerPhone: '',
+      customerAddress: {
+        line1: addressLine,
+        city,
+        state: stateProvince,
+        postal_code: postalCode,
+        country: 'PH',
+      },
+    };
+
+    setCreatingSession(true);
+    setPaymentError('');
+    setPaymentConfigHint('');
+    setPaymentStatus('creating');
+    setPaymentMessage('Creating PayMongo payment session...');
+
+    try {
+      const response = await fetch('/api/payments/session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      const data = await parseApiJson(response);
+      if (!response.ok) {
+        if (data?.hint) {
+          setPaymentConfigHint(data.hint);
+        }
+
+        throw new Error(data?.message || `Unable to create payment session. HTTP ${response.status}`);
+      }
+
+      if (!data) {
+        throw new Error('Payment API returned an empty response. Check API logs and PayMongo key.');
+      }
+
+      setPaymentReference(data.reference || generatedReference);
+      setPaymentQrUrl(data.qrImageUrl || '');
+      setPaymentCheckoutUrl(data.checkoutUrl || '');
+
+      if (data.paymongoKeyMode === 'test') {
+        setPaymentConfirmed(true);
+        setPaymentStatus('paid');
+        setPaymentMessage('Test mode detected. QR generated and payment auto-confirmed for checkout flow.');
+        setPaymentError('');
+        return;
+      }
+
+      setPaymentStatus('waiting');
+      setPaymentMessage('Payment session ready. Scan QR with GCash or open PayMongo checkout.');
+    } catch (error) {
+      setPaymentStatus('failed');
+      setPaymentMessage('');
+      if (error instanceof TypeError) {
+        setPaymentError('Payment API is unreachable. Start it with: npm run api');
+      } else {
+        setPaymentError(error?.message || 'Failed to create PayMongo payment session.');
+      }
+    } finally {
+      setCreatingSession(false);
+    }
+  };
+
+  const handleCheckout = async (e) => {
     e.preventDefault();
+
+    if (!shippingSubmitted) {
+      setShippingSubmitted(true);
+      await createPaymentSession();
+      return;
+    }
+
+    if (!paymentConfirmed) {
+      setPaymentError('Click Payment Confirmed to place the order.');
+      return;
+    }
+  };
+
+  useEffect(() => {
+    if (!shippingSubmitted || paymentConfirmed || !paymentReference) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const verifyPaymentStatus = async () => {
+      try {
+        const response = await fetch(`/api/payments/status/${paymentReference}`);
+        const data = await parseApiJson(response);
+
+        if (!response.ok) {
+          if (!cancelled && response.status === 404) {
+            setPaymentStatus('waiting');
+            setPaymentMessage('Payment session is still initializing...');
+          }
+
+          if (!cancelled && response.status >= 500) {
+            setPaymentError('Payment API error while checking status. Verify PAYMONGO_SECRET_KEY and npm run api.');
+          }
+          return;
+        }
+
+        if (!cancelled && data?.status === 'paid') {
+          setPaymentConfirmed(true);
+          setPaymentStatus('paid');
+          setPaymentMessage('Payment detected and confirmed by the system.');
+          setPaymentError('');
+          return;
+        }
+
+        if (!cancelled && data?.status === 'expired') {
+          setPaymentStatus('expired');
+          setPaymentMessage('Payment session expired. Please refresh checkout and try again.');
+          setPaymentError('');
+          return;
+        }
+
+        if (!cancelled) {
+          setPaymentStatus('waiting');
+          setPaymentMessage('Waiting for payment confirmation from PayMongo...');
+        }
+      } catch {
+        if (!cancelled) {
+          setPaymentError('Cannot verify payment right now. Ensure API server is running.');
+        }
+      }
+    };
+
+    verifyPaymentStatus();
+    const interval = setInterval(verifyPaymentStatus, 3000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [shippingSubmitted, paymentConfirmed, paymentReference]);
+
+  const handlePaymentConfirmed = () => {
+    if (!paymentConfirmed || processing || completed) {
+      return;
+    }
+
     setProcessing(true);
-    
-    // Simulate processing
-    setTimeout(() => {
+    try {
       const id = placeOrder();
       setOrderId(id);
-      setProcessing(false);
       setCompleted(true);
-    }, 2000);
+      setPaymentError('');
+      setPaymentMessage('Order placed successfully.');
+    } catch {
+      setPaymentError('Unable to complete checkout. Please try again.');
+    } finally {
+      setProcessing(false);
+    }
   };
+
+  const handleRedirectToGcash = () => {
+    const targetUrl = paymentCheckoutUrl || paymentQrUrl;
+
+    if (!targetUrl) {
+      setPaymentError('Payment session is not available yet. Please wait for the QR code.');
+      return;
+    }
+
+    setPaymentError('');
+    setPaymentStatus(paymentCheckoutUrl ? 'verifying' : 'waiting');
+    setPaymentMessage(paymentCheckoutUrl ? 'Opening PayMongo checkout. Complete payment with GCash, then return here.' : 'Opening the QR code in a new tab. Scan it with GCash or a QR-enabled banking app.');
+
+    const popup = window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    if (!popup) {
+      window.location.href = targetUrl;
+    }
+  };
+
+  if (shouldRedirectToCart) {
+    return null;
+  }
 
   if (completed) {
     return (
@@ -72,26 +278,80 @@ export const Checkout = () => {
         <form onSubmit={handleCheckout} className="space-y-6">
           <div className="space-y-4">
             <h2 className="text-sm font-bold uppercase tracking-widest text-emerald-500 mb-6">Contact Info</h2>
-            <input required type="email" placeholder="Email Address" className="w-full bg-zinc-900 border border-zinc-800 p-4 focus:outline-none focus:border-emerald-500 transition-colors text-zinc-50" />
+            <input required type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="Email Address" className="w-full bg-zinc-900 border border-zinc-800 p-4 focus:outline-none focus:border-emerald-500 transition-colors text-zinc-50" />
             <div className="grid grid-cols-2 gap-4">
-              <input required type="text" placeholder="First Name" className="w-full bg-zinc-900 border border-zinc-800 p-4 focus:outline-none focus:border-emerald-500 transition-colors text-zinc-50" />
-              <input required type="text" placeholder="Last Name" className="w-full bg-zinc-900 border border-zinc-800 p-4 focus:outline-none focus:border-emerald-500 transition-colors text-zinc-50" />
+              <input required type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="First Name" className="w-full bg-zinc-900 border border-zinc-800 p-4 focus:outline-none focus:border-emerald-500 transition-colors text-zinc-50" />
+              <input required type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Last Name" className="w-full bg-zinc-900 border border-zinc-800 p-4 focus:outline-none focus:border-emerald-500 transition-colors text-zinc-50" />
             </div>
           </div>
 
           <div className="space-y-4 pt-8 border-t border-zinc-900">
             <h2 className="text-sm font-bold uppercase tracking-widest text-emerald-500 mb-6">Shipping</h2>
-            <input required type="text" placeholder="Address" className="w-full bg-zinc-900 border border-zinc-800 p-4 focus:outline-none focus:border-emerald-500 transition-colors text-zinc-50" />
-            <input required type="text" placeholder="City" className="w-full bg-zinc-900 border border-zinc-800 p-4 focus:outline-none focus:border-emerald-500 transition-colors text-zinc-50" />
+            <input required type="text" value={addressLine} onChange={(e) => setAddressLine(e.target.value)} placeholder="Address" className="w-full bg-zinc-900 border border-zinc-800 p-4 focus:outline-none focus:border-emerald-500 transition-colors text-zinc-50" />
+            <input required type="text" value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" className="w-full bg-zinc-900 border border-zinc-800 p-4 focus:outline-none focus:border-emerald-500 transition-colors text-zinc-50" />
             <div className="grid grid-cols-2 gap-4">
-              <input required type="text" placeholder="State/Province" className="w-full bg-zinc-900 border border-zinc-800 p-4 focus:outline-none focus:border-emerald-500 transition-colors text-zinc-50" />
-              <input required type="text" placeholder="Postal Code" className="w-full bg-zinc-900 border border-zinc-800 p-4 focus:outline-none focus:border-emerald-500 transition-colors text-zinc-50" />
+              <input required type="text" value={stateProvince} onChange={(e) => setStateProvince(e.target.value)} placeholder="State/Province" className="w-full bg-zinc-900 border border-zinc-800 p-4 focus:outline-none focus:border-emerald-500 transition-colors text-zinc-50" />
+              <input required type="text" value={postalCode} onChange={(e) => setPostalCode(e.target.value)} placeholder="Postal Code" className="w-full bg-zinc-900 border border-zinc-800 p-4 focus:outline-none focus:border-emerald-500 transition-colors text-zinc-50" />
             </div>
           </div>
 
+          {shippingSubmitted && (
+            <div className="space-y-5 pt-8 border-t border-zinc-900">
+              <h2 className="text-sm font-bold uppercase tracking-widest text-emerald-500">Payment</h2>
+              <p className="text-sm text-zinc-400">Pay via PayMongo using GCash or QR-enabled banking app.</p>
+
+              <div className="border border-zinc-800 bg-zinc-950 p-5 space-y-4">
+                <div className="bg-white p-3 w-max mx-auto rounded-sm">
+                  {paymentQrUrl ? (
+                    <img
+                      src={paymentQrUrl}
+                      alt="PayMongo checkout QR code"
+                      className="w-40 h-40 object-contain"
+                    />
+                  ) : (
+                    <div className="w-40 h-40 grid place-items-center text-center text-[11px] text-zinc-600 px-3">
+                      {creatingSession ? 'Preparing QR...' : 'QR unavailable'}
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-zinc-400 text-center">Ref: {paymentReference || 'Pending'} • Amount: ₱{cartTotal.toFixed(2)}</p>
+
+                <button
+                  type="button"
+                  onClick={handlePaymentConfirmed}
+                  disabled={!paymentConfirmed || processing || completed}
+                  className="w-full py-3 border border-zinc-700 font-bold uppercase tracking-widest text-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-zinc-50 text-zinc-950 hover:bg-emerald-400"
+                >
+                  {paymentStatus === 'creating' && 'Creating Payment Session'}
+                  {paymentStatus === 'verifying' && 'Checking Payment'}
+                  {paymentStatus === 'paid' && 'Payment Confirmed'}
+                  {paymentStatus === 'expired' && 'Payment Session Expired'}
+                  {(paymentStatus === 'waiting' || paymentStatus === 'idle' || paymentStatus === 'failed') && 'Awaiting Payment Confirmation'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleRedirectToGcash}
+                  disabled={creatingSession || (!paymentCheckoutUrl && !paymentQrUrl)}
+                  className="w-full py-3 border border-zinc-700 text-zinc-100 font-bold uppercase tracking-widest hover:border-emerald-500 hover:text-emerald-400 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Smartphone size={16} />
+                  Open Payment
+                </button>
+              </div>
+
+              {paymentMessage && (
+                <p className={`text-sm ${paymentConfirmed ? 'text-emerald-400' : 'text-zinc-400'}`}>{paymentMessage}</p>
+              )}
+
+              {paymentError && <p className="text-sm text-red-400">{paymentError}</p>}
+              {paymentConfigHint && <p className="text-xs text-amber-400">{paymentConfigHint}</p>}
+            </div>
+          )}
+
           <button 
             type="submit" 
-            disabled={processing}
+            disabled={processing || shippingSubmitted}
             className="w-full mt-12 py-5 bg-zinc-50 text-zinc-950 font-bold tracking-widest uppercase hover:bg-emerald-400 transition-colors flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {processing ? (
@@ -100,7 +360,7 @@ export const Checkout = () => {
                 Processing...
               </>
             ) : (
-              `Pay ₱${cartTotal.toFixed(2)}`
+              shippingSubmitted ? (creatingSession ? 'Preparing Payment Session...' : 'Waiting for Payment Confirmation') : 'Continue to Payment'
             )}
           </button>
         </form>

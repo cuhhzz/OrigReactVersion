@@ -1,9 +1,9 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
-import { userAuth } from "../auth/AuthContext";
+import { useUserAuth } from "../auth/AuthContext";
 
 const AdminRoute = ({ children }) => {
-  const { authReady, session, isAdmin, isConfiguredAdminEmail } = userAuth();
+  const { authReady, session, isAdmin, isConfiguredAdminEmail } = useUserAuth();
 
   if (!authReady) {
     return null;
